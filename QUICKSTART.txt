@@ -1,0 +1,96 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                  WorkZen HRMS - Quick Start                      ║
+║                     3 Steps to Success!                          ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📌 STEP 1: Install Dependencies (2 minutes)
+───────────────────────────────────────────────────────────────────
+Open terminal in this folder and run:
+
+    npm install
+
+Wait for completion...
+
+
+📌 STEP 2: Setup Database (5 minutes)
+───────────────────────────────────────────────────────────────────
+1. Start XAMPP → MySQL
+2. Open: http://localhost/phpmyadmin
+3. Create database: workzen
+4. Import: database/schema.sql (copy-paste SQL tab)
+5. Optional: database/sample-data.sql for demo
+
+
+📌 STEP 3: Run Application (1 minute)
+───────────────────────────────────────────────────────────────────
+In terminal:
+
+    npm run dev
+
+Then open: http://localhost:3000
+
+
+🔐 LOGIN CREDENTIALS
+───────────────────────────────────────────────────────────────────
+Email:    admin@workzen.com
+Password: admin123
+
+
+✅ WHAT TO DEMO
+───────────────────────────────────────────────────────────────────
+1. Login → Dashboard (show stats)
+2. Add Employee (auto employee code)
+3. Mark Attendance (as employee)
+4. Apply Leave (as employee)
+5. Approve Leave (as HR - hr@workzen.com / hr123)
+6. Generate Payroll (show calculation!)
+
+
+🎯 KEY SELLING POINTS
+───────────────────────────────────────────────────────────────────
+✓ Complete integration: Employee → Attendance → Leave → Payroll
+✓ Automated salary calculation with attendance
+✓ Professional UI with smooth animations
+✓ Role-based access (4 roles)
+✓ Production-ready code
+
+
+📚 DOCUMENTATION
+───────────────────────────────────────────────────────────────────
+README.md         - Full documentation
+INSTALLATION.md   - Detailed setup guide  
+DEMO-SCRIPT.md    - 7-minute presentation script
+PROJECT-SUMMARY.md - Everything you need to know
+
+
+🐛 TROUBLESHOOTING
+───────────────────────────────────────────────────────────────────
+MySQL error?     → Check XAMPP, verify DB name is 'workzen'
+Module error?    → Delete node_modules, run npm install again
+Can't login?     → Make sure schema.sql is imported
+Port 3000 busy?  → Run: npm run dev -- -p 3001
+
+
+💡 PRO TIPS
+───────────────────────────────────────────────────────────────────
+• Practice demo 2-3 times before presentation
+• Show the payroll calculation - it's impressive!
+• Explain how attendance affects salary
+• Keep backup screenshots ready
+• Charge laptop fully!
+
+
+🏆 YOU'RE READY!
+───────────────────────────────────────────────────────────────────
+This is a complete, production-ready HRMS.
+Just install, setup database, and demo.
+
+Good luck at the hackathon! 🚀
+
+
+────────────────────────────────────────────────────────────────────
+Need help? Check:
+1. INSTALLATION.md for step-by-step setup
+2. PROJECT-SUMMARY.md for complete overview
+3. DEMO-SCRIPT.md for presentation guide
+────────────────────────────────────────────────────────────────────

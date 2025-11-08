@@ -1,0 +1,122 @@
+========================================
+WorkZen HRMS - Database Import Guide
+========================================
+
+⚠️  IMPORTANT: Password Hashes Updated!
+--------------------------------------
+
+OPTION 1: Quick Fix (If Database Already Imported)
+---------------------------------------------------
+1. Open phpMyAdmin
+2. Select 'workzen' database
+3. Click on 'SQL' tab
+4. Open file: database/fix-passwords.sql
+5. Copy all content and paste in SQL tab
+6. Click 'Go'
+7. Done! All passwords are now fixed!
+
+OPTION 2: Fresh Import (Recommended)
+--------------------------------------
+1. Open phpMyAdmin (http://localhost/phpmyadmin)
+2. If 'workzen' database exists, DELETE it first
+3. Click on "New" in the left sidebar
+4. Enter database name: workzen
+5. Select Collation: utf8mb4_general_ci
+6. Click "Create"
+
+STEP 2: Import Schema (Option 2 Only)
+--------------------------------------
+1. Select the "workzen" database from the left sidebar
+2. Click on the "Import" tab at the top
+3. Click "Choose File" button
+4. Navigate to: database/schema.sql
+5. Click "Go" button at the bottom
+6. Wait for success message
+
+STEP 3: Import Sample Data (Option 2 Only)
+-------------------------------------------
+1. Stay in the "workzen" database
+2. Click on the "Import" tab again
+3. Click "Choose File" button
+4. Navigate to: database/sample-data.sql
+5. Click "Go" button at the bottom
+6. Wait for success message
+
+========================================
+DEFAULT LOGIN CREDENTIALS
+========================================
+
+ADMIN:
+Email: adminworkzen@gmail.com
+Password: admin@1234
+
+HR MANAGER:
+Email: hrworkzen@gmail.com
+Password: hr@1234
+
+PAYROLL OFFICER:
+Email: payrollworkzen@gmail.com
+Password: payroll@1234
+
+EMPLOYEE:
+Email: employeeworkzen@gmail.com
+Password: employee@1234
+
+========================================
+WHAT'S INCLUDED IN SAMPLE DATA
+========================================
+
+✅ 4 Main User Accounts (Admin, HR, Payroll, Employee)
+✅ 15 Employee Records across 5 departments
+✅ Attendance records for current month
+✅ Leave requests (Pending, Approved, Rejected)
+✅ Payroll records (fully processed)
+✅ Notifications
+✅ Performance reviews
+✅ Audit logs
+✅ Employee documents
+✅ Password change requests
+✅ 5 Leave types
+✅ 5 Departments (IT, HR, Finance, Sales, Operations)
+✅ Holidays
+✅ System settings
+
+========================================
+VERIFICATION
+========================================
+
+After import, verify by running these queries in phpMyAdmin SQL tab:
+
+-- Check users
+SELECT * FROM users;
+
+-- Check employees
+SELECT * FROM employees;
+
+-- Check attendance
+SELECT * FROM attendance WHERE date = CURDATE();
+
+-- Check departments
+SELECT * FROM departments;
+
+========================================
+TROUBLESHOOTING
+========================================
+
+If you get errors:
+1. Make sure database is empty before importing schema.sql
+2. Import schema.sql FIRST, then sample-data.sql
+3. Check if MySQL server is running
+4. Verify .env.local has correct database credentials
+5. Make sure database name is exactly "workzen"
+
+========================================
+READY TO USE!
+========================================
+
+Once imported successfully:
+1. Start the development server: npm run dev
+2. Go to: http://localhost:3000/login
+3. Click any Quick Login button or enter credentials manually
+4. You'll be redirected to role-specific dashboard
+5. Enjoy the fully functional HRMS! 🎉
