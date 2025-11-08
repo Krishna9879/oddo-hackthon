@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,7 +16,11 @@ export default function EmployeesPage() {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [isEditing, setIsEditing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const initialFormState = useMemo(() => ({
     firstName: '',
     lastName: '',
     email: '',
@@ -29,8 +33,10 @@ export default function EmployeesPage() {
     joinDate: '',
     basicSalary: '',
     allowances: '',
-    password: 'employee123',
-  });
+    password: '',
+  }), []);
+
+  const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
     fetchEmployees();
@@ -61,43 +67,139 @@ export default function EmployeesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
-      const response = await fetch('/api/employees', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
+      const payload: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        address: formData.address,
+        department: formData.department,
+        designation: formData.designation,
+        joinDate: formData.joinDate,
+        basicSalary: formData.basicSalary,
+        allowances: formData.allowances,
+      };
 
-      if (response.ok) {
-        await fetchEmployees();
-        setShowModal(false);
-        resetForm();
+      if (isEditing) {
+        payload.id = selectedEmployee?.id;
+        if (formData.password && formData.password.trim().length > 0) {
+          payload.password = formData.password;
+        }
+
+        const response = await fetch('/api/employees', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          await fetchEmployees();
+          closeModal();
+        }
+      } else {
+        payload.password = formData.password;
+
+        const response = await fetch('/api/employees', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          await fetchEmployees();
+          closeModal();
+        }
       }
     } catch (error) {
-      console.error('Failed to create employee:', error);
+      console.error('Failed to submit employee data:', error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const resetForm = () => {
+    setFormData(initialFormState);
+    setSelectedEmployee(null);
+    setIsEditing(false);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    resetForm();
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const handleEditClick = (employee: any) => {
+    setSelectedEmployee(employee);
+    setIsEditing(true);
     setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      dateOfBirth: '',
-      gender: 'Male',
-      address: '',
-      department: 'IT',
-      designation: '',
-      joinDate: '',
-      basicSalary: '',
-      allowances: '',
-      password: 'employee123',
+      firstName: employee.first_name || '',
+      lastName: employee.last_name || '',
+      email: employee.email || '',
+      phone: employee.phone || '',
+      dateOfBirth: employee.date_of_birth ? employee.date_of_birth.split('T')[0] : '',
+      gender: employee.gender || 'Male',
+      address: employee.address || '',
+      department: employee.department || 'IT',
+      designation: employee.designation || '',
+      joinDate: employee.join_date ? employee.join_date.split('T')[0] : '',
+      basicSalary: employee.basic_salary ? String(employee.basic_salary) : '',
+      allowances: employee.allowances ? String(employee.allowances) : '',
+      password: '',
     });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (employeeId: number) => {
+    const confirmed = window.confirm('Are you sure you want to delete this employee? This action cannot be undone.');
+    if (!confirmed) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    setDeletingId(employeeId);
+
+    try {
+      const response = await fetch(`/api/employees?id=${employeeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        await fetchEmployees();
+      }
+    } catch (error) {
+      console.error('Failed to delete employee:', error);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const filteredEmployees = employees.filter(emp =>
@@ -130,7 +232,7 @@ export default function EmployeesPage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowModal(true)}
+            onClick={openCreateModal}
             className="btn-primary flex items-center space-x-2"
           >
             <Plus className="h-5 w-5" />
@@ -229,9 +331,24 @@ export default function EmployeesPage() {
                     <Eye className="h-4 w-4 text-blue-600" />
                     <span className="text-sm font-medium">View</span>
                   </button>
-                  <button className="flex-1 glass px-3 py-2 rounded-lg flex items-center justify-center space-x-1 hover:bg-green-50 transition-colors">
+                  <button
+                    onClick={() => handleEditClick(employee)}
+                    className="flex-1 glass px-3 py-2 rounded-lg flex items-center justify-center space-x-1 hover:bg-green-50 transition-colors"
+                  >
                     <Edit className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium">Edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(employee.id)}
+                    disabled={deletingId === employee.id}
+                    className={`flex-1 glass px-3 py-2 rounded-lg flex items-center justify-center space-x-1 transition-colors ${deletingId === employee.id ? 'opacity-60 cursor-not-allowed' : 'hover:bg-red-50'}`}
+                  >
+                    {deletingId === employee.id ? (
+                      <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className="text-sm font-medium">Delete</span>
                   </button>
                 </div>
               </motion.div>
@@ -255,8 +372,8 @@ export default function EmployeesPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={() => setShowModal(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -268,7 +385,7 @@ export default function EmployeesPage() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-3xl font-bold gradient-text">Add New Employee</h2>
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={closeModal}
                   className="p-2 hover:bg-white/50 rounded-xl transition-colors"
                 >
                   <X className="h-6 w-6" />
@@ -329,6 +446,20 @@ export default function EmployeesPage() {
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="input-premium"
                       placeholder="+91 9876543210"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Password {isEditing ? '(leave blank to keep current)' : '*'}
+                    </label>
+                    <input
+                      type="text"
+                      required={!isEditing}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="input-premium"
+                      placeholder={isEditing ? 'Enter new password' : 'Set temporary password'}
                     />
                   </div>
 
@@ -448,16 +579,18 @@ export default function EmployeesPage() {
                 <div className="flex gap-4 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
+                    onClick={closeModal}
                     className="flex-1 glass px-6 py-3 rounded-xl font-semibold hover:bg-white/80 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 btn-primary"
+                    disabled={submitting || (!isEditing && formData.password.trim().length === 0)}
+                    className={`flex-1 btn-primary flex items-center justify-center space-x-2 ${submitting ? 'opacity-80 cursor-not-allowed' : ''}`}
                   >
-                    Create Employee
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <span>{isEditing ? 'Update Employee' : 'Create Employee'}</span>
                   </button>
                 </div>
               </form>

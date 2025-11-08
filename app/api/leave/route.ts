@@ -101,12 +101,13 @@ export async function POST(request: NextRequest) {
 
     const leaveRequestId = result.insertId;
 
-    // Get employee name for notification
+    // Get employee name and role for notification
     const [employeeInfo]: any = await pool.execute(
-      'SELECT first_name, last_name FROM employees WHERE id = ?',
+      'SELECT e.first_name, e.last_name, u.role FROM employees e JOIN users u ON e.user_id = u.id WHERE e.id = ?',
       [employeeId]
     );
     const employeeName = employeeInfo[0] ? `${employeeInfo[0].first_name} ${employeeInfo[0].last_name}` : 'Employee';
+    const employeeRole = employeeInfo[0]?.role || 'employee';
 
     // Get leave type name
     const [leaveTypeInfo]: any = await pool.execute(
@@ -115,19 +116,42 @@ export async function POST(request: NextRequest) {
     );
     const leaveTypeName = leaveTypeInfo[0]?.name || 'Leave';
 
-    // Create notifications for HR and Admin users
-    const [hrUsers]: any = await pool.execute(
-      'SELECT id FROM users WHERE role IN ("hr", "admin") AND is_active = TRUE'
-    );
+    // Determine who should receive notifications
+    // If employee is HR or Payroll Officer, only admin gets notification
+    // If employee is regular employee, HR and Admin get notification
+    let notificationUsers: any[] = [];
 
-    for (const hrUser of hrUsers) {
+    if (employeeRole === 'hr' || employeeRole === 'payroll_officer') {
+      // HR/Payroll Officer leave requests go to admin only
+      const [adminUsers]: any = await pool.execute(
+        'SELECT id FROM users WHERE role = ? AND is_active = TRUE',
+        ['admin']
+      );
+      notificationUsers = adminUsers;
+
+      // Mark leave request as requiring admin approval
+      await pool.execute(
+        'UPDATE leave_requests SET requires_admin_approval = TRUE WHERE id = ?',
+        [leaveRequestId]
+      );
+    } else {
+      // Regular employee leave requests go to HR and Admin
+      const [hrUsers]: any = await pool.execute(
+        'SELECT id FROM users WHERE role IN (?, ?) AND is_active = TRUE',
+        ['hr', 'admin']
+      );
+      notificationUsers = hrUsers;
+    }
+
+    // Create notifications
+    for (const user of notificationUsers) {
       await pool.execute(
         `INSERT INTO notifications (user_id, title, message, type, action_url, created_at)
          VALUES (?, ?, ?, ?, ?, NOW())`,
         [
-          hrUser.id,
+          user.id,
           'New Leave Request',
-          `${employeeName} has applied for ${leaveTypeName} from ${startDate} to ${endDate} (${totalDays} days)`,
+          `${employeeName} (${employeeRole}) has applied for ${leaveTypeName} from ${startDate} to ${endDate} (${totalDays} days)`,
           'info',
           `/leave`
         ]

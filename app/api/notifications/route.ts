@@ -14,16 +14,29 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const unreadOnly = searchParams.get('unread') === 'true';
 
+    // Get user role to filter notifications appropriately
+    const [userInfo]: any = await query(
+      'SELECT role FROM users WHERE id = ?',
+      [decoded.userId]
+    );
+
+    const userRole = userInfo[0]?.role || 'employee';
+
+    // Build query based on role
+    // Employees see only their notifications
+    // HR/Admin/Payroll see their role-specific notifications
     let sql = `
-      SELECT * FROM notifications 
-      WHERE user_id = ?
+      SELECT n.* FROM notifications n
+      WHERE n.user_id = ?
     `;
 
+    // For employees, show only their notifications
+    // For HR/Admin/Payroll, they can see notifications related to their role
     if (unreadOnly) {
-      sql += ' AND is_read = FALSE';
+      sql += ' AND n.is_read = FALSE';
     }
 
-    sql += ' ORDER BY created_at DESC LIMIT 50';
+    sql += ' ORDER BY n.created_at DESC LIMIT 50';
 
     const notifications = await query(sql, [decoded.userId]);
 

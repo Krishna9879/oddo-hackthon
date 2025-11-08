@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Users, UserPlus, Calendar, Clock, FileText, Bell, LogOut,
-  CheckCircle, XCircle, AlertCircle, TrendingUp, Building2, Search
+  CheckCircle, XCircle, AlertCircle, TrendingUp, Building2, Search, Loader2
 } from 'lucide-react';
 
 export default function HRDashboardPage() {
@@ -15,45 +15,207 @@ export default function HRDashboardPage() {
   const [stats, setStats] = useState({
     totalEmployees: 145,
     activeEmployees: 142,
-    newHires: 8,
+    newHires: 0,
     resignations: 3,
-    pendingLeaves: 12,
+    pendingLeaves: 0,
     approvedToday: 5,
     attendanceRate: 94,
     avgWorkingHours: 8.5,
   });
   const [pendingLeaves, setPendingLeaves] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [recentEmployees, setRecentEmployees] = useState<any[]>([]);
   const [passwordRequests, setPasswordRequests] = useState<any[]>([]);
+  const [processingLeaveId, setProcessingLeaveId] = useState<number | null>(null);
+  const [processingAction, setProcessingAction] = useState<'approve' | 'reject' | null>(null);
+
+  const fetchNotifications = async (token: string) => {
+    try {
+      const response = await fetch('/api/notifications', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  const fetchPendingLeaves = async (token: string) => {
+    try {
+      const response = await fetch('/api/leave?status=Pending', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const formatted = (Array.isArray(data) ? data : [])
+          .filter((leave: any) => !leave.requires_admin_approval)
+          .map((leave: any) => ({
+            id: leave.id,
+            employeeName: `${leave.first_name ?? ''} ${leave.last_name ?? ''}`.trim(),
+            employeeCode: leave.employee_code,
+            leaveType: leave.leave_type_name,
+            startDate: leave.start_date,
+            endDate: leave.end_date,
+            totalDays: leave.total_days,
+            reason: leave.reason,
+          }));
+        setPendingLeaves(formatted);
+        setStats((prev) => ({
+          ...prev,
+          pendingLeaves: formatted.length,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch pending leaves:', error);
+    }
+  };
+
+  const fetchRecentEmployees = async (token: string) => {
+    try {
+      const response = await fetch('/api/employees', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const formatted = (Array.isArray(data) ? data : [])
+          .slice(0, 5)
+          .map((emp: any) => ({
+            id: emp.id,
+            name: `${emp.first_name ?? ''} ${emp.last_name ?? ''}`.trim(),
+            code: emp.employee_code,
+            department: emp.department,
+            joinDate: emp.join_date,
+            status: emp.status,
+          }));
+        setRecentEmployees(formatted);
+        setStats((prev) => ({
+          ...prev,
+          newHires: formatted.length,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch recent employees:', error);
+    }
+  };
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      router.push('/login');
+    const init = async () => {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+
+      if (!token || !userData) {
+        router.push('/login');
+        return;
+      }
+
+      setUser(JSON.parse(userData));
+
+      try {
+        await Promise.all([
+          fetchPendingLeaves(token),
+          fetchNotifications(token),
+          fetchRecentEmployees(token),
+        ]);
+      } catch (error) {
+        console.error('HR dashboard initialization error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, [router]);
+
+  const markNotificationsAsRead = async () => {
+    const unread = notifications.some((notification: any) => !notification.is_read);
+    if (!unread) {
       return;
     }
-    
-    setUser(JSON.parse(userData));
 
-    // Static demo data
-    setPendingLeaves([
-      { id: 1, employeeName: 'John Doe', type: 'Sick Leave', startDate: '2024-01-10', endDate: '2024-01-11', days: 2, reason: 'Medical checkup' },
-      { id: 2, employeeName: 'Jane Smith', type: 'Casual Leave', startDate: '2024-01-12', endDate: '2024-01-12', days: 1, reason: 'Personal work' },
-      { id: 3, employeeName: 'Mike Johnson', type: 'Annual Leave', startDate: '2024-01-15', endDate: '2024-01-20', days: 6, reason: 'Family vacation' },
-    ]);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
 
-    setRecentEmployees([
-      { id: 1, name: 'Sarah Williams', code: 'EMP146', department: 'IT', joinDate: '2024-01-05', status: 'active' },
-      { id: 2, name: 'Robert Brown', code: 'EMP147', department: 'Finance', joinDate: '2024-01-03', status: 'active' },
-    ]);
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ markAllRead: true }),
+      });
 
-    setPasswordRequests([
-      { id: 1, employeeName: 'Alice Cooper', employeeCode: 'EMP098', reason: 'Forgot password', date: '2024-01-08' },
-      { id: 2, employeeName: 'David Lee', employeeCode: 'EMP112', reason: 'Security concern', date: '2024-01-07' },
-    ]);
+      setNotifications((prev) => prev.map((notification: any) => ({
+        ...notification,
+        is_read: true,
+      })));
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+    }
+  };
 
-    setLoading(false);
-  }, [router]);
+  const handleNotificationToggle = async () => {
+    const next = !showNotifications;
+    setShowNotifications(next);
+    if (next) {
+      await markNotificationsAsRead();
+    }
+  };
+
+  const handleLeaveAction = async (leaveId: number, action: 'Approved' | 'Rejected') => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
+    let rejectionReason: string | undefined;
+    if (action === 'Rejected') {
+      const input = window.prompt('Please provide a reason for rejection (optional):');
+      if (input === null) {
+        return;
+      }
+      rejectionReason = input.trim() || undefined;
+    }
+
+    setProcessingLeaveId(leaveId);
+    setProcessingAction(action === 'Approved' ? 'approve' : 'reject');
+
+    try {
+      const response = await fetch('/api/leave', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id: leaveId, status: action, rejectionReason }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || 'Failed to update leave request');
+        return;
+      }
+
+      await fetchPendingLeaves(token);
+    } catch (error) {
+      console.error('Failed to update leave request:', error);
+      alert('Failed to update leave request. Please try again.');
+    } finally {
+      setProcessingLeaveId(null);
+      setProcessingAction(null);
+    }
+  };
+
+  const unreadCount = useMemo(
+    () => notifications.filter((notification: any) => !notification.is_read).length,
+    [notifications]
+  );
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -87,14 +249,47 @@ export default function HRDashboardPage() {
                 className="bg-transparent border-none outline-none text-sm w-48"
               />
             </div>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="relative p-2 glass rounded-xl hover:bg-white/50 transition-colors"
-            >
-              <Bell className="h-5 w-5 text-slate-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </motion.button>
+            <div className="relative">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleNotificationToggle}
+                className="relative p-2 glass rounded-xl hover:bg-white/50 transition-colors"
+              >
+                <Bell className="h-5 w-5 text-slate-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
+              </motion.button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-3 w-80 glass rounded-2xl shadow-xl border border-white/40 max-h-96 overflow-y-auto z-50">
+                  <div className="p-4 flex items-center justify-between border-b border-white/30">
+                    <h4 className="text-sm font-semibold text-slate-800">Notifications</h4>
+                    <button
+                      onClick={() => setShowNotifications(false)}
+                      className="text-xs text-slate-500 hover:text-slate-700"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {notifications.length === 0 ? (
+                      <p className="text-xs text-slate-500 text-center">No notifications yet.</p>
+                    ) : (
+                      notifications.map((notification: any) => (
+                        <div key={notification.id} className="p-3 rounded-xl bg-white/60">
+                          <p className="text-xs font-semibold text-slate-700">{notification.title}</p>
+                          <p className="text-xs text-slate-500 mt-1">{notification.message}</p>
+                          <p className="text-[10px] text-slate-400 mt-2">
+                            {notification.created_at ? new Date(notification.created_at).toLocaleString() : ''}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -189,27 +384,39 @@ export default function HRDashboardPage() {
                 <div key={leave.id} className="p-4 glass rounded-xl hover:bg-white/80 transition-all">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-slate-900">{leave.employeeName}</p>
-                    <span className="badge badge-info">{leave.type}</span>
+                    <span className="badge badge-info">{leave.leaveType}</span>
                   </div>
                   <p className="text-sm text-slate-600 mb-2">
-                    {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()} ({leave.days} days)
+                    {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()} ({leave.totalDays} days)
                   </p>
                   <p className="text-xs text-slate-500 mb-3">{leave.reason}</p>
                   <div className="flex gap-2">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      onClick={() => handleLeaveAction(leave.id, 'Approved')}
+                      disabled={processingLeaveId === leave.id}
                       className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center space-x-1"
                     >
-                      <CheckCircle className="h-4 w-4" />
+                      {processingLeaveId === leave.id && processingAction === 'approve' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
                       <span>Approve</span>
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      onClick={() => handleLeaveAction(leave.id, 'Rejected')}
+                      disabled={processingLeaveId === leave.id}
                       className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center space-x-1"
                     >
-                      <XCircle className="h-4 w-4" />
+                      {processingLeaveId === leave.id && processingAction === 'reject' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
                       <span>Reject</span>
                     </motion.button>
                   </div>

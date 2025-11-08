@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -21,38 +21,102 @@ export default function PayrollDashboardPage() {
     totalDeductions: 1250000,
     netPayable: 9600000,
   });
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [recentPayrolls, setRecentPayrolls] = useState<any[]>([]);
   const [pendingProcessing, setPendingProcessing] = useState<any[]>([]);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      router.push('/login');
+    const init = async () => {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        router.push('/login');
+        return;
+      }
+
+      setUser(JSON.parse(userData));
+
+      // Static demo data until backend endpoints are available
+      setRecentPayrolls([
+        { employee: 'John Doe', code: 'EMP001', basicSalary: 50000, allowances: 10000, deductions: 5000, netSalary: 55000, status: 'Paid' },
+        { employee: 'Jane Smith', code: 'EMP002', basicSalary: 60000, allowances: 12000, deductions: 6000, netSalary: 66000, status: 'Paid' },
+        { employee: 'Mike Johnson', code: 'EMP003', basicSalary: 55000, allowances: 11000, deductions: 5500, netSalary: 60500, status: 'Paid' },
+      ]);
+
+      setPendingProcessing([
+        { employee: 'Sarah Williams', code: 'EMP146', department: 'IT', workingDays: 22, presentDays: 22 },
+        { employee: 'Robert Brown', code: 'EMP147', department: 'Finance', workingDays: 22, presentDays: 21 },
+      ]);
+
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const notifRes = await fetch('/api/notifications', {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (notifRes.ok) {
+            const notifData = await notifRes.json();
+            setNotifications(notifData);
+          }
+        } catch (error) {
+          console.error('Failed to fetch notifications:', error);
+        }
+      }
+
+      setLoading(false);
+    };
+
+    init();
+  }, [router]);
+
+  const markNotificationsAsRead = async () => {
+    const unread = notifications.some((notification) => !notification.is_read);
+    if (!unread) {
       return;
     }
-    
-    setUser(JSON.parse(userData));
 
-    // Static demo data
-    setRecentPayrolls([
-      { employee: 'John Doe', code: 'EMP001', basicSalary: 50000, allowances: 10000, deductions: 5000, netSalary: 55000, status: 'Paid' },
-      { employee: 'Jane Smith', code: 'EMP002', basicSalary: 60000, allowances: 12000, deductions: 6000, netSalary: 66000, status: 'Paid' },
-      { employee: 'Mike Johnson', code: 'EMP003', basicSalary: 55000, allowances: 11000, deductions: 5500, netSalary: 60500, status: 'Paid' },
-    ]);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
 
-    setPendingProcessing([
-      { employee: 'Sarah Williams', code: 'EMP146', department: 'IT', workingDays: 22, presentDays: 22 },
-      { employee: 'Robert Brown', code: 'EMP147', department: 'Finance', workingDays: 22, presentDays: 21 },
-    ]);
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ markAllRead: true }),
+      });
 
-    setLoading(false);
-  }, [router]);
+      setNotifications((prev) => prev.map((notification) => ({
+        ...notification,
+        is_read: true,
+      })));
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+    }
+  };
+
+  const handleNotificationToggle = async () => {
+    const next = !showNotifications;
+    setShowNotifications(next);
+    if (next) {
+      await markNotificationsAsRead();
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/login');
   };
+
+  const unreadCount = useMemo(
+    () => notifications.filter((notification) => !notification.is_read).length,
+    [notifications]
+  );
 
   if (loading) {
     return (
@@ -72,14 +136,47 @@ export default function PayrollDashboardPage() {
             <p className="text-sm text-slate-600">Salary Processing & Management</p>
           </div>
           <div className="flex items-center space-x-4">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="relative p-2 glass rounded-xl hover:bg-white/50 transition-colors"
-            >
-              <Bell className="h-5 w-5 text-slate-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </motion.button>
+            <div className="relative">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleNotificationToggle}
+                className="relative p-2 glass rounded-xl hover:bg-white/50 transition-colors"
+              >
+                <Bell className="h-5 w-5 text-slate-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
+              </motion.button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-3 w-72 glass rounded-2xl shadow-xl border border-white/40 max-h-80 overflow-y-auto z-50">
+                  <div className="p-4 flex items-center justify-between border-b border-white/30">
+                    <h4 className="text-sm font-semibold text-slate-800">Notifications</h4>
+                    <button
+                      onClick={() => setShowNotifications(false)}
+                      className="text-xs text-slate-500 hover:text-slate-700"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {notifications.length === 0 ? (
+                      <p className="text-xs text-slate-500 text-center">No notifications yet.</p>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div key={notification.id} className="p-3 rounded-xl bg-white/60">
+                          <p className="text-xs font-semibold text-slate-700">{notification.title}</p>
+                          <p className="text-xs text-slate-500 mt-1">{notification.message}</p>
+                          <p className="text-[10px] text-slate-400 mt-2">
+                            {notification.created_at ? new Date(notification.created_at).toLocaleString() : ''}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

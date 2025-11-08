@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -22,6 +23,7 @@ export default function EmployeeDashboardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [location, setLocation] = useState<string>('');
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -82,7 +84,7 @@ export default function EmployeeDashboardPage() {
       }
 
       // Fetch notifications
-      const notifRes = await fetch('/api/notifications?unread=true', {
+      const notifRes = await fetch('/api/notifications', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (notifRes.ok) {
@@ -107,6 +109,44 @@ export default function EmployeeDashboardPage() {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markNotificationsAsRead = async () => {
+    const unread = notifications.some((notification) => !notification.is_read);
+    if (!unread) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ markAllRead: true }),
+      });
+
+      setNotifications((prev) => prev.map((notification) => ({
+        ...notification,
+        is_read: true,
+      })));
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+    }
+  };
+
+  const handleNotificationToggle = async () => {
+    const next = !showNotifications;
+    setShowNotifications(next);
+    if (next) {
+      await markNotificationsAsRead();
     }
   };
 
@@ -214,6 +254,11 @@ export default function EmployeeDashboardPage() {
     );
   }
 
+  const unreadCount = useMemo(
+    () => notifications.filter((notification) => !notification.is_read).length,
+    [notifications]
+  );
+
   const stats = {
     totalLeaves: 25,
     usedLeaves: leaves.filter(l => l.status === 'Approved').reduce((sum, l) => sum + (l.total_days || 0), 0),
@@ -233,17 +278,47 @@ export default function EmployeeDashboardPage() {
             <p className="text-sm text-slate-600">Welcome back, {profile?.first_name || user?.firstName}!</p>
           </div>
           <div className="flex items-center space-x-4">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => router.push('/leave')}
-              className="relative p-2 glass rounded-xl hover:bg-white/50 transition-colors"
-            >
-              <Bell className="h-5 w-5 text-slate-600" />
-              {notifications.length > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            <div className="relative">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleNotificationToggle}
+                className="relative p-2 glass rounded-xl hover:bg-white/50 transition-colors"
+              >
+                <Bell className="h-5 w-5 text-slate-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
+              </motion.button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-3 w-72 glass rounded-2xl shadow-xl border border-white/40 max-h-80 overflow-y-auto z-50">
+                  <div className="p-4 flex items-center justify-between border-b border-white/30">
+                    <h4 className="text-sm font-semibold text-slate-800">Notifications</h4>
+                    <button
+                      onClick={() => setShowNotifications(false)}
+                      className="text-xs text-slate-500 hover:text-slate-700"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {notifications.length === 0 ? (
+                      <p className="text-xs text-slate-500 text-center">No notifications yet.</p>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div key={notification.id} className="p-3 rounded-xl bg-white/60">
+                          <p className="text-xs font-semibold text-slate-700">{notification.title}</p>
+                          <p className="text-xs text-slate-500 mt-1">{notification.message}</p>
+                          <p className="text-[10px] text-slate-400 mt-2">
+                            {notification.created_at ? new Date(notification.created_at).toLocaleString() : ''}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
-            </motion.button>
+            </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -466,7 +541,7 @@ export default function EmployeeDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
           <QuickAction
             icon={<Clock className="h-5 w-5" />}
             label="View Attendance"
@@ -478,12 +553,6 @@ export default function EmployeeDashboardPage() {
             label="Apply Leave"
             onClick={() => router.push('/leave')}
             color="from-purple-500 to-purple-600"
-          />
-          <QuickAction
-            icon={<DollarSign className="h-5 w-5" />}
-            label="View Payslips"
-            onClick={() => router.push('/payroll')}
-            color="from-green-500 to-green-600"
           />
           <QuickAction
             icon={<FileText className="h-5 w-5" />}
