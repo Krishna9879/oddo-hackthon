@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
+import { sendEmail, emailTemplates } from '@/lib/email';
 
 // POST approve/reject leave request
 export async function POST(request: NextRequest) {
@@ -11,8 +12,9 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = verifyToken(token);
-    if (!payload || !['admin', 'hr'].includes(payload.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Only admin can approve leaves (including HR and Payroll Officer leaves)
+    if (!payload || payload.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden. Only admin can approve leaves.' }, { status: 403 });
     }
 
     const { leaveId, status, rejectionReason } = await request.json();
@@ -58,6 +60,53 @@ export async function POST(request: NextRequest) {
         '/leave'
       ]
     );
+
+    // Send email to employee
+    try {
+      const [employeeUser]: any = await pool.execute(
+        'SELECT email FROM users WHERE id = ?',
+        [requestData.user_id]
+      );
+
+      if (employeeUser.length > 0 && employeeUser[0].email) {
+        if (status === 'Approved') {
+          const emailTemplate = emailTemplates.leaveApproved(
+            employeeName,
+            requestData.leave_type_name,
+            requestData.start_date,
+            requestData.end_date,
+            requestData.total_days
+          );
+          await sendEmail({
+            to: employeeUser[0].email,
+            subject: emailTemplate.subject,
+            html: emailTemplate.html,
+          });
+        } else {
+          const emailTemplate = emailTemplates.leaveRejected(
+            employeeName,
+            requestData.leave_type_name,
+            requestData.start_date,
+            requestData.end_date,
+            rejectionReason || 'No reason provided'
+          );
+          await sendEmail({
+            to: employeeUser[0].email,
+            subject: emailTemplate.subject,
+            html: emailTemplate.html,
+          });
+        }
+
+        // Update notification email sent status
+        await pool.execute(
+          'UPDATE notifications SET email_sent = TRUE, email_sent_at = NOW() WHERE user_id = ? AND title = ? ORDER BY id DESC LIMIT 1',
+          [requestData.user_id, `Leave Request ${status}`]
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError);
+      // Continue even if email fails
+    }
 
     return NextResponse.json({ message: 'Leave request updated successfully' });
   } catch (error) {
