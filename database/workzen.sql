@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 08, 2025 at 12:21 PM
+-- Generation Time: Nov 08, 2025 at 11:11 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -40,6 +40,10 @@ CREATE TABLE `attendance` (
   `check_out_longitude` decimal(11,8) DEFAULT NULL,
   `check_out_location` varchar(500) DEFAULT NULL,
   `status` enum('Present','Absent','Half Day','Late') DEFAULT 'Present',
+  `shift_type` enum('day','night') NOT NULL DEFAULT 'day',
+  `scheduled_check_out` datetime DEFAULT NULL,
+  `auto_checkout` tinyint(1) NOT NULL DEFAULT 0,
+  `auto_checkout_at` datetime DEFAULT NULL,
   `working_hours` decimal(4,2) DEFAULT 0.00,
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -50,27 +54,27 @@ CREATE TABLE `attendance` (
 -- Dumping data for table `attendance`
 --
 
-INSERT INTO `attendance` (`id`, `employee_id`, `date`, `check_in`, `check_out`, `check_in_latitude`, `check_in_longitude`, `check_in_location`, `check_out_latitude`, `check_out_longitude`, `check_out_location`, `status`, `working_hours`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 1, '2025-11-08', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(2, 2, '2025-11-08', '09:15:00', '18:15:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(3, 3, '2025-11-08', '09:05:00', '18:05:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 1', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 1', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(4, 4, '2025-11-08', '09:30:00', '18:30:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Late', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(5, 5, '2025-11-08', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(6, 6, '2025-11-08', '09:10:00', '18:10:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(7, 7, '2025-11-08', '08:55:00', '17:55:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(8, 8, '2025-11-08', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(9, 9, '2025-11-08', '09:20:00', '18:20:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Late', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(10, 10, '2025-11-08', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(11, 1, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(12, 2, '2025-11-07', '09:10:00', '18:10:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(13, 3, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 1', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 1', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(14, 4, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(15, 5, '2025-11-07', '09:05:00', '18:05:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(16, 6, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(17, 7, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(18, 8, '2025-11-07', '09:30:00', '18:30:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Late', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(19, 9, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(20, 10, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14');
+INSERT INTO `attendance` (`id`, `employee_id`, `date`, `check_in`, `check_out`, `check_in_latitude`, `check_in_longitude`, `check_in_location`, `check_out_latitude`, `check_out_longitude`, `check_out_location`, `status`, `shift_type`, `scheduled_check_out`, `auto_checkout`, `auto_checkout_at`, `working_hours`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 1, '2025-11-08', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(2, 2, '2025-11-08', '09:15:00', '18:15:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(3, 3, '2025-11-08', '09:05:00', '18:05:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 1', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 1', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(4, 4, '2025-11-08', '09:30:00', '18:30:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Late', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(5, 5, '2025-11-08', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(6, 6, '2025-11-08', '09:10:00', '18:10:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(7, 7, '2025-11-08', '08:55:00', '17:55:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(8, 8, '2025-11-08', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(9, 9, '2025-11-08', '09:20:00', '18:20:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Late', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(10, 10, '2025-11-08', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(11, 1, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(12, 2, '2025-11-07', '09:10:00', '18:10:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(13, 3, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 1', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 1', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(14, 4, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(15, 5, '2025-11-07', '09:05:00', '18:05:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(16, 6, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(17, 7, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 4', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(18, 8, '2025-11-07', '09:30:00', '18:30:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Late', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(19, 9, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 2', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(20, 10, '2025-11-07', '09:00:00', '18:00:00', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 19.07609000, 72.87742600, 'Mumbai Office - Building A, Floor 3', 'Present', 'day', NULL, 0, NULL, 9.00, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14');
 
 -- --------------------------------------------------------
 
@@ -176,7 +180,9 @@ INSERT INTO `employees` (`id`, `user_id`, `employee_code`, `first_name`, `last_n
 (7, 7, 'EMP007', 'Mike', 'Johnson', 'mike.johnson@workzen.com', '+91 9876543212', '1988-12-05', 'Male', NULL, 'IT', NULL, 'DevOps Engineer', '2020-09-01', 85000.00, 21000.00, NULL, 'active', '2025-11-08 09:27:14', '2025-11-08 09:27:14', NULL, NULL, NULL, NULL, NULL, NULL),
 (8, 8, 'EMP008', 'Sarah', 'Williams', 'sarah.williams@workzen.com', '+91 9876543213', '1991-04-18', 'Female', NULL, 'Finance', NULL, 'Accountant', '2021-02-20', 60000.00, 12000.00, NULL, 'active', '2025-11-08 09:27:14', '2025-11-08 09:27:14', NULL, NULL, NULL, NULL, NULL, NULL),
 (9, 9, 'EMP009', 'Robert', 'Brown', 'robert.brown@workzen.com', '+91 9876543214', '1987-09-30', 'Male', NULL, 'Finance', NULL, 'Financial Analyst', '2020-11-05', 70000.00, 15000.00, NULL, 'active', '2025-11-08 09:27:14', '2025-11-08 09:27:14', NULL, NULL, NULL, NULL, NULL, NULL),
-(10, 10, 'EMP010', 'Emily', 'Davis', 'emily.davis@workzen.com', '+91 9876543215', '1993-06-12', 'Female', NULL, 'Sales', NULL, 'Sales Manager', '2021-04-01', 65000.00, 15000.00, NULL, 'active', '2025-11-08 09:27:14', '2025-11-08 09:27:14', NULL, NULL, NULL, NULL, NULL, NULL);
+(10, 10, 'EMP010', 'Emily', 'Davis', 'emily.davis@workzen.com', '+91 9876543215', '1993-06-12', 'Female', NULL, 'Sales', NULL, 'Sales Manager', '2021-04-01', 65000.00, 15000.00, NULL, 'active', '2025-11-08 09:27:14', '2025-11-08 09:27:14', NULL, NULL, NULL, NULL, NULL, NULL),
+(16, 11, 'EMP011', 'vaibhav', 'vaibhav', 'khichipratik1@gmail.com', '9978452525', '2025-11-05', 'Female', 'shfasgfkjaddsf fhkfhsdfkj sfdkshf', 'IT', NULL, 'jr dev', '2025-11-04', 40000.00, 5000.00, NULL, 'active', '2025-11-08 13:33:12', '2025-11-08 13:33:12', NULL, NULL, NULL, NULL, NULL, NULL),
+(17, 12, 'EMP012', 'pratyaksh', 'khinchi', 'pratikkhichi70@gmail.com', '9978452525', '2025-11-10', 'Female', 'lhfksdfjgh sfhksdjfhds fhskfjhds ', 'IT', NULL, 'jr dev', '2025-11-11', 50000.00, 10000.00, NULL, 'active', '2025-11-08 18:02:16', '2025-11-08 18:02:16', NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -213,7 +219,7 @@ INSERT INTO `employee_documents` (`id`, `employee_id`, `document_type`, `documen
 --
 -- Table structure for table `holidays`
 --
- 
+
 CREATE TABLE `holidays` (
   `id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
@@ -271,7 +277,10 @@ INSERT INTO `leave_requests` (`id`, `employee_id`, `leave_type_id`, `start_date`
 (3, 5, 3, '2025-10-29', '2025-11-03', 6, 'Annual vacation', NULL, NULL, 'Approved', 0, 2, NULL, NULL, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
 (4, 8, 2, '2025-10-24', '2025-10-25', 2, 'Personal work', NULL, NULL, 'Approved', 0, 2, NULL, NULL, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
 (5, 7, 2, '2025-11-03', '2025-11-05', 3, 'Personal reasons', NULL, NULL, 'Rejected', 0, 2, NULL, NULL, NULL, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(8, 5, 3, '2025-11-16', '2025-11-18', 3, 'actually i am in merraige that\'s why i willnot able to come so please manage ', NULL, NULL, 'Approved', 0, 3, '2025-11-08 09:45:33', NULL, NULL, '2025-11-08 09:43:52', '2025-11-08 09:45:33');
+(8, 5, 3, '2025-11-16', '2025-11-18', 3, 'actually i am in merraige that\'s why i willnot able to come so please manage ', NULL, NULL, 'Approved', 0, 3, '2025-11-08 09:45:33', NULL, NULL, '2025-11-08 09:43:52', '2025-11-08 09:45:33'),
+(9, 16, 5, '2025-11-20', '2025-11-26', 7, 'i amgoing outside', NULL, NULL, 'Rejected', 0, 3, '2025-11-08 13:35:40', 'we have an emergency meeting on this perticular dates', NULL, '2025-11-08 13:34:55', '2025-11-08 13:35:40'),
+(10, 17, 5, '2025-11-18', '2025-11-20', 3, 'i want to go in merraige', NULL, NULL, 'Rejected', 0, 3, '2025-11-08 18:05:15', 'there is an important meeting during this days i can approv only for 2 days in between 18 to 30', NULL, '2025-11-08 18:04:30', '2025-11-08 18:05:15'),
+(11, 4, 5, '2025-11-15', '2025-11-17', 3, 'htis is the issue please fix it out', NULL, NULL, 'Rejected', 1, 2, '2025-11-08 18:30:55', 'zcfd', NULL, '2025-11-08 18:30:03', '2025-11-08 18:30:55');
 
 -- --------------------------------------------------------
 
@@ -297,6 +306,26 @@ INSERT INTO `leave_types` (`id`, `name`, `days_allowed`, `description`, `created
 (3, 'Annual Leave', 20, 'Annual paid vacation', '2025-11-08 09:20:27'),
 (4, 'Maternity Leave', 90, 'Maternity leave for female employees', '2025-11-08 09:20:27'),
 (5, 'Paternity Leave', 7, 'Paternity leave for male employees', '2025-11-08 09:20:27');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `night_shift_requests`
+--
+
+CREATE TABLE `night_shift_requests` (
+  `id` int(11) NOT NULL,
+  `employee_id` int(11) NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `reason` text DEFAULT NULL,
+  `status` enum('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -329,8 +358,38 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `is_re
 (5, 2, 'New Employee Joined', 'Daniel Martinez has joined the HR department', 'info', 0, 0, NULL, NULL, '2025-11-08 09:27:15'),
 (6, 1, 'New Leave Request', 'John Doe has applied for Annual Leave from 2025-11-16 to 2025-11-18 (3 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 09:43:52'),
 (7, 2, 'New Leave Request', 'John Doe has applied for Annual Leave from 2025-11-16 to 2025-11-18 (3 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 09:43:52'),
-(8, 3, 'New Leave Request', 'John Doe has applied for Annual Leave from 2025-11-16 to 2025-11-18 (3 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 09:43:52'),
-(9, 5, 'Leave Request Approved', 'Your Annual Leave request from Sun Nov 16 2025 00:00:00 GMT+0530 (India Standard Time) to Tue Nov 18 2025 00:00:00 GMT+0530 (India Standard Time) has been approved.', 'success', 0, 0, NULL, '/leave', '2025-11-08 09:45:33');
+(8, 3, 'New Leave Request', 'John Doe has applied for Annual Leave from 2025-11-16 to 2025-11-18 (3 days)', 'info', 1, 0, NULL, '/leave', '2025-11-08 09:43:52'),
+(9, 5, 'Leave Request Approved', 'Your Annual Leave request from Sun Nov 16 2025 00:00:00 GMT+0530 (India Standard Time) to Tue Nov 18 2025 00:00:00 GMT+0530 (India Standard Time) has been approved.', 'success', 1, 0, NULL, '/leave', '2025-11-08 09:45:33'),
+(10, 11, 'Welcome to WorkZen HRMS', 'Your account has been created. Check your email (khichipratik1@gmail.com) for login credentials.', 'success', 1, 0, NULL, '/login', '2025-11-08 13:33:12'),
+(11, 1, 'New Leave Request', 'vaibhav vaibhav (employee) has applied for Paternity Leave from 2025-11-20 to 2025-11-26 (7 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 13:34:55'),
+(12, 2, 'New Leave Request', 'vaibhav vaibhav (employee) has applied for Paternity Leave from 2025-11-20 to 2025-11-26 (7 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 13:34:55'),
+(13, 3, 'New Leave Request', 'vaibhav vaibhav (employee) has applied for Paternity Leave from 2025-11-20 to 2025-11-26 (7 days)', 'info', 1, 0, NULL, '/leave', '2025-11-08 13:34:55'),
+(14, 11, 'Leave Request Rejected', 'Your Paternity Leave request from Thu Nov 20 2025 00:00:00 GMT+0530 (India Standard Time) to Wed Nov 26 2025 00:00:00 GMT+0530 (India Standard Time) has been rejected. Reason: we have an emergency meeting on this perticular dates', 'error', 1, 1, '2025-11-08 13:35:43', '/leave', '2025-11-08 13:35:40'),
+(15, 1, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹1,12,500', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 15:38:26'),
+(16, 2, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹83,700', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 15:38:30'),
+(17, 3, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹76,500', 'success', 1, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 15:38:34'),
+(18, 4, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹54,000', 'success', 1, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 15:38:37'),
+(19, 5, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹90,000', 'success', 1, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 15:38:41'),
+(20, 6, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹83,700', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 15:38:44'),
+(21, 12, 'Welcome to WorkZen HRMS', 'Your account has been created. Check your email (pratikkhichi70@gmail.com) for login credentials.', 'success', 0, 0, NULL, '/login', '2025-11-08 18:02:16'),
+(22, 1, 'New Leave Request', 'pratyaksh khinchi (employee) has applied for Paternity Leave from 2025-11-18 to 2025-11-20 (3 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 18:04:30'),
+(23, 2, 'New Leave Request', 'pratyaksh khinchi (employee) has applied for Paternity Leave from 2025-11-18 to 2025-11-20 (3 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 18:04:30'),
+(24, 3, 'New Leave Request', 'pratyaksh khinchi (employee) has applied for Paternity Leave from 2025-11-18 to 2025-11-20 (3 days)', 'info', 1, 0, NULL, '/leave', '2025-11-08 18:04:30'),
+(25, 12, 'Leave Request Rejected', 'Your Paternity Leave request from Tue Nov 18 2025 00:00:00 GMT+0530 (India Standard Time) to Thu Nov 20 2025 00:00:00 GMT+0530 (India Standard Time) has been rejected. Reason: there is an important meeting during this days i can approv only for 2 days in between 18 to 30', 'error', 0, 1, '2025-11-08 18:05:18', '/leave', '2025-11-08 18:05:15'),
+(26, 1, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹1,12,500', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:14'),
+(27, 2, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹83,700', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:18'),
+(28, 3, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹76,500', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:21'),
+(29, 4, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹54,000', 'success', 1, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:24'),
+(30, 5, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹90,000', 'success', 1, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:27'),
+(31, 6, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹83,700', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:31'),
+(32, 7, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹95,400', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:33'),
+(33, 8, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹64,800', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:37'),
+(34, 9, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹76,500', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:40'),
+(35, 10, 'Payslip Generated', 'Your payslip for November 2025 is ready. Net Salary: ₹72,000', 'success', 0, 0, NULL, '/payroll/payslip?month=11&year=2025', '2025-11-08 18:07:43'),
+(36, 1, 'New Leave Request', 'John Employee (payroll_officer) has applied for Paternity Leave from 2025-11-15 to 2025-11-17 (3 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 18:30:03'),
+(37, 2, 'New Leave Request', 'John Employee (payroll_officer) has applied for Paternity Leave from 2025-11-15 to 2025-11-17 (3 days)', 'info', 0, 0, NULL, '/leave', '2025-11-08 18:30:03'),
+(38, 4, 'Leave Request Rejected', 'Your Paternity Leave request from Sat Nov 15 2025 00:00:00 GMT+0530 (India Standard Time) to Mon Nov 17 2025 00:00:00 GMT+0530 (India Standard Time) has been rejected. Reason: not approved', 'error', 0, 0, NULL, '/leave', '2025-11-08 18:30:50'),
+(39, 4, 'Leave Request Rejected', 'Your Paternity Leave request from Sat Nov 15 2025 00:00:00 GMT+0530 (India Standard Time) to Mon Nov 17 2025 00:00:00 GMT+0530 (India Standard Time) has been rejected. Reason: zcfd', 'error', 0, 1, '2025-11-08 18:30:59', '/leave', '2025-11-08 18:30:55');
 
 -- --------------------------------------------------------
 
@@ -411,21 +470,16 @@ CREATE TABLE `payroll` (
 --
 
 INSERT INTO `payroll` (`id`, `payrun_id`, `employee_id`, `month`, `year`, `basic_salary`, `allowances`, `bonus`, `deductions`, `penalty`, `notes`, `gross_salary`, `net_salary`, `working_days`, `present_days`, `absent_days`, `leave_days`, `status`, `is_locked`, `payslip_generated`, `payslip_path`, `payslip_sent_at`, `locked_at`, `locked_by`, `payment_date`, `generated_by`, `created_at`, `updated_at`) VALUES
-(1, NULL, 1, 11, 2025, 100000.00, 25000.00, 0.00, 12500.00, 0.00, NULL, 125000.00, 112500.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(2, NULL, 2, 11, 2025, 75000.00, 18000.00, 0.00, 9300.00, 0.00, NULL, 93000.00, 83700.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(3, NULL, 3, 11, 2025, 70000.00, 15000.00, 0.00, 8500.00, 0.00, NULL, 85000.00, 76500.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(4, NULL, 4, 11, 2025, 50000.00, 10000.00, 0.00, 6000.00, 0.00, NULL, 60000.00, 54000.00, 22, 21, 1, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(5, NULL, 5, 11, 2025, 80000.00, 20000.00, 0.00, 10000.00, 0.00, NULL, 100000.00, 90000.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(6, NULL, 6, 11, 2025, 75000.00, 18000.00, 0.00, 9300.00, 0.00, NULL, 93000.00, 83700.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(7, NULL, 7, 11, 2025, 85000.00, 21000.00, 0.00, 10600.00, 0.00, NULL, 106000.00, 95400.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(8, NULL, 8, 11, 2025, 60000.00, 12000.00, 0.00, 7200.00, 0.00, NULL, 72000.00, 64800.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(9, NULL, 9, 11, 2025, 70000.00, 15000.00, 0.00, 8500.00, 0.00, NULL, 85000.00, 76500.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(10, NULL, 10, 11, 2025, 65000.00, 15000.00, 0.00, 8000.00, 0.00, NULL, 80000.00, 72000.00, 22, 22, 0, 0, 'Processed', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(11, 1, 4, 10, 2025, 52000.00, 12000.00, 0.00, 8600.00, 0.00, NULL, 64000.00, 55400.00, 22, 21, 1, 1, 'Draft', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-01 09:00:00', '2025-11-01 09:00:00'),
-(12, 1, 5, 10, 2025, 85000.00, 25000.00, 0.00, 14750.00, 0.00, NULL, 110000.00, 95250.00, 22, 22, 0, 0, 'Draft', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-01 09:00:00', '2025-11-01 09:00:00'),
-(13, 1, 6, 10, 2025, 78000.00, 18000.00, 0.00, 12840.00, 0.00, NULL, 96000.00, 83160.00, 22, 21, 1, 0, 'Draft', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-01 09:00:00', '2025-11-01 09:00:00'),
-(14, 1, 7, 10, 2025, 88000.00, 22000.00, 0.00, 15400.00, 0.00, NULL, 110000.00, 94600.00, 22, 22, 0, 0, 'Draft', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-01 09:00:00', '2025-11-01 09:00:00'),
-(15, 1, 8, 10, 2025, 61000.00, 13000.00, 0.00, 9620.00, 0.00, NULL, 74000.00, 64380.00, 22, 21, 1, 0, 'Draft', 0, 0, NULL, NULL, NULL, NULL, NULL, 3, '2025-11-01 09:00:00', '2025-11-01 09:00:00');
+(1, 1, 1, 11, 2025, 100000.00, 25000.00, 0.00, 12500.00, 0.00, NULL, 125000.00, 112500.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP001_2025_11.html', '2025-11-08 18:07:14', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:14'),
+(2, 1, 2, 11, 2025, 75000.00, 18000.00, 0.00, 9300.00, 0.00, NULL, 93000.00, 83700.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP002_2025_11.html', '2025-11-08 18:07:18', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:18'),
+(3, 1, 3, 11, 2025, 70000.00, 15000.00, 0.00, 8500.00, 0.00, NULL, 85000.00, 76500.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP003_2025_11.html', '2025-11-08 18:07:21', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:21'),
+(4, 1, 4, 11, 2025, 50000.00, 10000.00, 0.00, 6000.00, 0.00, NULL, 60000.00, 54000.00, 22, 21, 1, 0, 'Processed', 0, 1, '/payslips/payslip_EMP004_2025_11.html', '2025-11-08 18:07:24', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:24'),
+(5, 1, 5, 11, 2025, 80000.00, 20000.00, 0.00, 10000.00, 0.00, NULL, 100000.00, 90000.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP005_2025_11.html', '2025-11-08 18:07:27', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:27'),
+(6, 1, 6, 11, 2025, 75000.00, 18000.00, 0.00, 9300.00, 0.00, NULL, 93000.00, 83700.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP006_2025_11.html', '2025-11-08 18:07:31', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:31'),
+(7, 1, 7, 11, 2025, 85000.00, 21000.00, 0.00, 10600.00, 0.00, NULL, 106000.00, 95400.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP007_2025_11.html', '2025-11-08 18:07:33', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:33'),
+(8, 1, 8, 11, 2025, 60000.00, 12000.00, 0.00, 7200.00, 0.00, NULL, 72000.00, 64800.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP008_2025_11.html', '2025-11-08 18:07:37', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:37'),
+(9, 1, 9, 11, 2025, 70000.00, 15000.00, 0.00, 8500.00, 0.00, NULL, 85000.00, 76500.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP009_2025_11.html', '2025-11-08 18:07:40', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:40'),
+(10, 1, 10, 11, 2025, 65000.00, 15000.00, 0.00, 8000.00, 0.00, NULL, 80000.00, 72000.00, 22, 22, 0, 0, 'Processed', 0, 1, '/payslips/payslip_EMP010_2025_11.html', '2025-11-08 18:07:43', NULL, NULL, NULL, 3, '2025-11-08 09:27:14', '2025-11-08 18:07:43');
 
 -- --------------------------------------------------------
 
@@ -449,6 +503,13 @@ CREATE TABLE `payruns` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `payruns`
+--
+
+INSERT INTO `payruns` (`id`, `month`, `year`, `status`, `total_employees`, `total_gross_salary`, `total_deductions`, `total_net_salary`, `generated_by`, `approved_by`, `approved_at`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 11, 2025, 'Rejected', 10, 899000.00, 89900.00, 809100.00, 4, 4, '2025-11-08 18:29:37', NULL, '2025-11-08 15:37:59', '2025-11-08 18:29:37');
 
 -- --------------------------------------------------------
 
@@ -560,7 +621,9 @@ INSERT INTO `users` (`id`, `email`, `password`, `role`, `is_active`, `email_noti
 (7, 'jane.smith@workzen.com', '$2a$10$DeJjOkhC8rQM.7Ptm7VAIuGS36xl.P6n97yZ2bjcBJj5AKgDenON2', 'employee', 1, 1, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
 (8, 'mike.johnson@workzen.com', '$2a$10$DeJjOkhC8rQM.7Ptm7VAIuGS36xl.P6n97yZ2bjcBJj5AKgDenON2', 'employee', 1, 1, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
 (9, 'sarah.williams@workzen.com', '$2a$10$DeJjOkhC8rQM.7Ptm7VAIuGS36xl.P6n97yZ2bjcBJj5AKgDenON2', 'employee', 1, 1, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
-(10, 'robert.brown@workzen.com', '$2a$10$DeJjOkhC8rQM.7Ptm7VAIuGS36xl.P6n97yZ2bjcBJj5AKgDenON2', 'employee', 1, 1, '2025-11-08 09:27:14', '2025-11-08 09:27:14');
+(10, 'robert.brown@workzen.com', '$2a$10$DeJjOkhC8rQM.7Ptm7VAIuGS36xl.P6n97yZ2bjcBJj5AKgDenON2', 'employee', 1, 1, '2025-11-08 09:27:14', '2025-11-08 09:27:14'),
+(11, 'khichipratik1@gmail.com', '$2a$10$.CgiRFqHqKQ7bK.xiqbrcuzILznCYniUghZDV2v2tp/hM3tLXorja', 'employee', 1, 1, '2025-11-08 13:33:12', '2025-11-08 13:33:12'),
+(12, 'pratikkhichi70@gmail.com', '$2a$10$.y8IkocfzQUCaG5IHV6PJOio/nwDBD1F5GeC1CU2nBae3w0R71jqy', 'employee', 1, 1, '2025-11-08 18:02:16', '2025-11-08 18:02:16');
 
 --
 -- Indexes for dumped tables
@@ -631,6 +694,14 @@ ALTER TABLE `leave_requests`
 --
 ALTER TABLE `leave_types`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `night_shift_requests`
+--
+ALTER TABLE `night_shift_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_night_shift_employee` (`employee_id`),
+  ADD KEY `idx_night_shift_status` (`status`);
 
 --
 -- Indexes for table `notifications`
@@ -734,7 +805,7 @@ ALTER TABLE `departments`
 -- AUTO_INCREMENT for table `employees`
 --
 ALTER TABLE `employees`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `employee_documents`
@@ -752,7 +823,7 @@ ALTER TABLE `holidays`
 -- AUTO_INCREMENT for table `leave_requests`
 --
 ALTER TABLE `leave_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `leave_types`
@@ -761,10 +832,16 @@ ALTER TABLE `leave_types`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
+-- AUTO_INCREMENT for table `night_shift_requests`
+--
+ALTER TABLE `night_shift_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `password_change_requests`
@@ -788,7 +865,7 @@ ALTER TABLE `payroll`
 -- AUTO_INCREMENT for table `payruns`
 --
 ALTER TABLE `payruns`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `performance_reviews`
@@ -812,7 +889,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- Constraints for dumped tables
@@ -858,6 +935,12 @@ ALTER TABLE `leave_requests`
   ADD CONSTRAINT `leave_requests_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `leave_requests_ibfk_2` FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types` (`id`),
   ADD CONSTRAINT `leave_requests_ibfk_3` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `night_shift_requests`
+--
+ALTER TABLE `night_shift_requests`
+  ADD CONSTRAINT `fk_night_shift_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `notifications`

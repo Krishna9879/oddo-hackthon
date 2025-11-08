@@ -11,6 +11,11 @@ function diffHours(start: Date, end: Date) {
   return Math.max(0, parseFloat(diff.toFixed(2)));
 }
 
+function diffMinutes(start: Date, end: Date) {
+  const diff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
+  return Math.max(0, diff);
+}
+
 // POST check-out with GPS location
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +47,8 @@ export async function POST(request: NextRequest) {
 
     // Find the most recent open attendance record (supports night shifts)
     const [existing]: any = await pool.execute(
-      `SELECT id, date, check_in, check_out, shift_type, scheduled_check_out
+      `SELECT id, date, check_in, check_out, shift_type, scheduled_check_out,
+              lunch_start, lunch_end, lunch_minutes
        FROM attendance
        WHERE employee_id = ? AND check_in IS NOT NULL AND check_out IS NULL
        ORDER BY date DESC
@@ -61,7 +67,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid check-in time recorded' }, { status: 500 });
     }
 
-    const workingHours = diffHours(checkInDateTime, now);
+    // Compute lunch minutes; if lunch is active, end it now
+    let totalLunchMinutes = Number(record.lunch_minutes || 0);
+    let lunchEndToPersist: string | null = null;
+    if (record.lunch_start && !record.lunch_end) {
+      const start = new Date(record.lunch_start);
+      const added = diffMinutes(start, now);
+      totalLunchMinutes += added;
+      lunchEndToPersist = now.toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    let workingHours = diffHours(checkInDateTime, now) - totalLunchMinutes / 60;
+    if (workingHours < 0) workingHours = 0;
 
     await pool.execute(
       `UPDATE attendance
@@ -72,7 +89,9 @@ export async function POST(request: NextRequest) {
            working_hours = ?,
            auto_checkout = 0,
            auto_checkout_at = NULL,
-           scheduled_check_out = IFNULL(scheduled_check_out, ?)
+           scheduled_check_out = IFNULL(scheduled_check_out, ?),
+           lunch_end = IFNULL(lunch_end, ?),
+           lunch_minutes = ?
        WHERE id = ?`,
       [
         nowTime,
@@ -81,6 +100,8 @@ export async function POST(request: NextRequest) {
         location || null,
         workingHours,
         record.scheduled_check_out || `${record.date}T${nowTime}`,
+        lunchEndToPersist,
+        totalLunchMinutes,
         record.id,
       ]
     );

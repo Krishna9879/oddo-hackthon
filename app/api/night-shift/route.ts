@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
+import { sendEmail } from '@/lib/email';
 
 const APPROVER_ROLES = ['admin', 'hr'];
 
@@ -51,11 +52,32 @@ export async function PUT(request: NextRequest) {
       ? `Your night shift request (${reqRow.start_date} to ${reqRow.end_date}) has been approved.`
       : `Your night shift request (${reqRow.start_date} to ${reqRow.end_date}) has been rejected.`;
 
-    await pool.execute(
+    const [notifResult]: any = await pool.execute(
       `INSERT INTO notifications (user_id, title, message, type, action_url, created_at)
        VALUES (?, ?, ?, ?, ?, NOW())`,
       [reqRow.user_id, 'Night Shift Request Update', message, status === 'Approved' ? 'success' : 'error', '/night-shift']
     );
+
+    // Send email to employee (best-effort)
+    try {
+      const [userRows]: any = await pool.execute('SELECT email, email_notifications_enabled FROM users WHERE id = ? LIMIT 1', [reqRow.user_id]);
+      const email = userRows?.[0]?.email;
+      const emailEnabled = userRows?.[0]?.email_notifications_enabled !== 0;
+      if (email && emailEnabled) {
+        const subject = status === 'Approved' ? 'Night Shift Approved' : 'Night Shift Rejected';
+        const html = `
+          <div style="font-family: Arial, sans-serif; line-height:1.5;">
+            <h2 style="margin:0 0 8px 0;">${subject}</h2>
+            <p>${message}${status === 'Rejected' && (rejectionReason || '') ? ` Reason: ${rejectionReason}` : ''}</p>
+          </div>`;
+        const sent = await sendEmail({ to: email, subject, html });
+        if (sent && notifResult?.insertId) {
+          await pool.execute('UPDATE notifications SET email_sent = TRUE, email_sent_at = NOW() WHERE id = ?', [notifResult.insertId]);
+        }
+      }
+    } catch (e) {
+      // ignore email errors
+    }
 
     return NextResponse.json({ message: `Request ${status.toLowerCase()}` });
   } catch (error) {

@@ -18,6 +18,8 @@ export default function EmployeeProfilePage() {
     ifsc_code: '',
     pan_number: '',
   });
+  const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [changingPwd, setChangingPwd] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -69,6 +71,35 @@ export default function EmployeeProfilePage() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!pwdForm.currentPassword || !pwdForm.newPassword || !pwdForm.confirmPassword) {
+      alert('Fill all password fields');
+      return;
+    }
+    if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+      alert('New passwords do not match');
+      return;
+    }
+    setChangingPwd(true);
+    const token = localStorage.getItem('token');
+    if (!token) { setChangingPwd(false); return; }
+    try {
+      const res = await fetch('/api/profile/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: pwdForm.currentPassword, newPassword: pwdForm.newPassword }),
+      });
+      const out = await res.json();
+      if (!res.ok) throw new Error(out?.error || 'Failed to change password');
+      alert('Password updated');
+      setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (e: any) {
+      alert(e?.message || 'Failed to change password');
+    } finally {
+      setChangingPwd(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-6">Loading...</div>;
   }
@@ -102,6 +133,29 @@ export default function EmployeeProfilePage() {
               <label className="text-xs text-slate-600">Address</label>
               <input value={form.address} onChange={(e) => updateField('address', e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/40 bg-white/80 p-6">
+          <h2 className="mb-4 text-lg font-bold text-slate-900">Change Password</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="md:col-span-1">
+              <label className="text-xs text-slate-600">Current Password</label>
+              <input type="password" value={pwdForm.currentPassword} onChange={(e) => setPwdForm((p) => ({ ...p, currentPassword: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-600">New Password</label>
+              <input type="password" value={pwdForm.newPassword} onChange={(e) => setPwdForm((p) => ({ ...p, newPassword: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-600">Confirm Password</label>
+              <input type="password" value={pwdForm.confirmPassword} onChange={(e) => setPwdForm((p) => ({ ...p, confirmPassword: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button onClick={handleChangePassword} disabled={changingPwd} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              {changingPwd ? 'Updating...' : 'Update Password'}
+            </button>
           </div>
         </section>
 

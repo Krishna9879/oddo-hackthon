@@ -28,11 +28,20 @@ export async function GET(request: NextRequest) {
     const employeeId = employees[0].id;
     const today = new Date().toISOString().split('T')[0];
 
+    // Night shift flags for today
+    const [nsr]: any = await pool.execute(
+      `SELECT status FROM night_shift_requests WHERE employee_id = ? AND start_date <= ? AND end_date >= ? ORDER BY created_at DESC LIMIT 1`,
+      [employeeId, today, today]
+    );
+    const hasApprovedNightToday = nsr.length > 0 && nsr[0].status === 'Approved';
+    const hasPendingNightToday = nsr.length > 0 && nsr[0].status === 'Pending';
+
     // Get today's attendance
     const [attendance]: any = await pool.execute(
       `SELECT id, date, check_in, check_out, check_in_location, check_out_location, 
               status, working_hours, check_in_latitude, check_in_longitude,
-              check_out_latitude, check_out_longitude, shift_type, scheduled_check_out, auto_checkout, auto_checkout_at
+              check_out_latitude, check_out_longitude, shift_type, scheduled_check_out, auto_checkout, auto_checkout_at,
+              lunch_start, lunch_end, lunch_minutes
        FROM attendance 
        WHERE employee_id = ? AND date = ?`,
       [employeeId, today]
@@ -43,6 +52,8 @@ export async function GET(request: NextRequest) {
         hasAttendance: false,
         checkedIn: false,
         checkedOut: false,
+        hasApprovedNightToday,
+        hasPendingNightToday,
       });
     }
 
@@ -65,6 +76,11 @@ export async function GET(request: NextRequest) {
       scheduledCheckOut: record.scheduled_check_out,
       autoCheckout: !!record.auto_checkout,
       autoCheckoutAt: record.auto_checkout_at,
+      lunchStart: record.lunch_start,
+      lunchEnd: record.lunch_end,
+      lunchMinutes: record.lunch_minutes || 0,
+      hasApprovedNightToday,
+      hasPendingNightToday,
     });
   } catch (error) {
     console.error('Get today attendance error:', error);

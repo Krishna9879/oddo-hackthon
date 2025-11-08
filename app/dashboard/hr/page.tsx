@@ -40,6 +40,10 @@ export default function HRDashboardPage() {
   const nightPendingCount = nightRequests.length;
   const [attendanceRows, setAttendanceRows] = useState<any[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [myNightRequests, setMyNightRequests] = useState<any[]>([]);
+  const [newNight, setNewNight] = useState<{ startDate: string; endDate: string; reason: string }>({ startDate: '', endDate: '', reason: '' });
+  const [submittingNight, setSubmittingNight] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -57,6 +61,71 @@ export default function HRDashboardPage() {
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  const handleLunch = async (action: 'start' | 'end') => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch('/api/attendance/lunch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ action }),
+      });
+      const out = await res.json();
+      if (!res.ok) {
+        alert(out?.error || 'Failed to update lunch');
+        return;
+      }
+      const todayRes = await fetch('/api/attendance/today', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (todayRes.ok) setTodayAttendance(await todayRes.json());
+    } catch (_) {
+      alert('Failed to update lunch');
+    }
+  };
+
+  const loadProfileAndMyNight = async (token: string) => {
+    try {
+      const pr = await fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` } });
+      if (pr.ok) {
+        const p = await pr.json();
+        setProfile(p);
+        if (p?.id) {
+          const ns = await fetch(`/api/night-shift?employeeId=${p.id}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (ns.ok) {
+            const data = await ns.json();
+            setMyNightRequests(Array.isArray(data) ? data.slice(0, 5) : []);
+          }
+        }
+      }
+    } catch {}
+  };
+
+  const submitNightShiftRequest = async () => {
+    if (!newNight.startDate || !newNight.endDate) {
+      alert('Please select start and end dates');
+      return;
+    }
+    setSubmittingNight(true);
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('/api/night-shift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ startDate: newNight.startDate, endDate: newNight.endDate, reason: newNight.reason }),
+      });
+      const out = await res.json();
+      if (!res.ok) {
+        alert(out?.error || 'Failed to submit');
+      } else {
+        await loadProfileAndMyNight(token!);
+        setNewNight({ startDate: '', endDate: '', reason: '' });
+      }
+    } catch (_) {
+      alert('Unable to submit request');
+    } finally {
+      setSubmittingNight(false);
     }
   };
 
@@ -309,6 +378,7 @@ export default function HRDashboardPage() {
           fetchRecentEmployees(token),
           fetchPendingNightShifts(token),
           loadEmployeeAttendance(token),
+          loadProfileAndMyNight(token),
         ]);
 
         const todayRes = await fetch('/api/attendance/today', {
@@ -546,6 +616,29 @@ export default function HRDashboardPage() {
                     <span>{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
                   </div>
                 </div>
+                {todayAttendance?.shiftType && (
+                  <div className="mt-2 text-xs text-slate-600 flex items-center gap-2">
+                    <span className={`badge ${todayAttendance.shiftType === 'night' ? 'badge-warning' : 'badge-info'}`}>Shift: {todayAttendance.shiftType}</span>
+                    {todayAttendance?.scheduledCheckOut && (
+                      <span>Scheduled out at {new Date(todayAttendance.scheduledCheckOut).toLocaleTimeString()}</span>
+                    )}
+                    {todayAttendance?.autoCheckout && todayAttendance?.autoCheckoutAt && (
+                      <span className="text-red-600">• Auto checked out at {new Date(todayAttendance.autoCheckoutAt).toLocaleTimeString()}</span>
+                    )}
+                  </div>
+                )}
+                {todayAttendance && (
+                  <div className="mt-2 text-xs text-slate-600 flex items-center gap-2">
+                    <span>Lunch: {todayAttendance.lunchMinutes || 0} min</span>
+                    {!todayAttendance.checkedOut && todayAttendance.checkedIn && (
+                      todayAttendance.lunchStart && !todayAttendance.lunchEnd ? (
+                        <button onClick={() => handleLunch('end')} className="px-2 py-1 rounded-md bg-orange-600 text-white text-[11px]">End Lunch</button>
+                      ) : (
+                        <button onClick={() => handleLunch('start')} className="px-2 py-1 rounded-md bg-slate-800 text-white text-[11px]">Start Lunch</button>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -581,9 +674,9 @@ export default function HRDashboardPage() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleCheckIn}
-                  disabled={todayAttendance?.checkedIn || checkingIn}
+                  disabled={todayAttendance?.checkedIn || checkingIn || todayAttendance?.hasPendingNightToday}
                   className={`w-full py-4 rounded-xl font-bold text-white transition-all ${
-                    todayAttendance?.checkedIn ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg'
+                    todayAttendance?.checkedIn || todayAttendance?.hasPendingNightToday ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg'
                   }`}
                 >
                   {checkingIn ? (
@@ -591,6 +684,8 @@ export default function HRDashboardPage() {
                       <Loader2 className="h-5 w-5 animate-spin" />
                       <span>Checking In...</span>
                     </span>
+                  ) : todayAttendance?.hasPendingNightToday ? (
+                    'Night Shift Pending Approval'
                   ) : todayAttendance?.checkedIn ? (
                     'Already Checked In'
                   ) : (
@@ -719,6 +814,60 @@ export default function HRDashboardPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* My Night Shift Request */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="premium-card mb-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              <span>My Night Shift Request</span>
+            </h3>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-white/30 bg-white/80 p-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <label className="text-xs text-slate-600">Start Date</label>
+                  <input type="date" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={newNight.startDate} onChange={(e) => setNewNight((p) => ({ ...p, startDate: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600">End Date</label>
+                  <input type="date" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={newNight.endDate} onChange={(e) => setNewNight((p) => ({ ...p, endDate: e.target.value }))} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs text-slate-600">Reason (optional)</label>
+                  <input type="text" placeholder="Reason" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={newNight.reason} onChange={(e) => setNewNight((p) => ({ ...p, reason: e.target.value }))} />
+                </div>
+              </div>
+              <button onClick={submitNightShiftRequest} disabled={submittingNight} className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+                {submittingNight ? 'Submitting...' : 'Submit Night Shift Request'}
+              </button>
+            </div>
+            <div className="rounded-2xl border border-white/30 bg-white/80 p-4">
+              <p className="mb-3 text-sm font-semibold text-slate-800">My Recent Requests</p>
+              <div className="space-y-2">
+                {myNightRequests.length === 0 ? (
+                  <p className="text-xs text-slate-500">No requests yet.</p>
+                ) : (
+                  myNightRequests.map((r) => (
+                    <div key={r.id} className="rounded-xl bg-white/70 p-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-slate-900">{r.start_date} → {r.end_date}</p>
+                        <span className={`badge ${r.status === 'Approved' ? 'badge-success' : r.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>{r.status}</span>
+                      </div>
+                      {r.reason && <p className="mt-1 text-xs text-slate-500">{r.reason}</p>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <StatCard

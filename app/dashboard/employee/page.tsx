@@ -15,6 +15,13 @@ export default function EmployeeDashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [attendance, setAttendance] = useState<any[]>([]);
+  const [dailyReport, setDailyReport] = useState<any[]>([]);
+  const [reportMonth, setReportMonth] = useState<string>(() => {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${d.getFullYear()}-${m}`;
+  });
+  const [monthlySummary, setMonthlySummary] = useState<any | null>(null);
   const [leaves, setLeaves] = useState<any[]>([]);
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -68,13 +75,19 @@ export default function EmployeeDashboardPage() {
         setTodayAttendance(todayData);
       }
 
-      // Fetch recent attendance
+      // Fetch recent attendance (for quick list)
       const attendanceRes = await fetch('/api/attendance', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (attendanceRes.ok) {
         const attendanceData = await attendanceRes.json();
         setAttendance(attendanceData.slice(0, 5));
+      }
+
+      // Fetch daily report (last 30 records)
+      if (attendanceRes.ok) {
+        const attendanceData = await attendanceRes.json();
+        setDailyReport((Array.isArray(attendanceData) ? attendanceData : []).slice(0, 30));
       }
 
       // Fetch leave requests
@@ -117,10 +130,40 @@ export default function EmployeeDashboardPage() {
           }
         );
       }
+      // Load monthly summary
+      try {
+        const sumRes = await fetch(`/api/attendance/summary?month=${reportMonth}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (sumRes.ok) {
+          const rows = await sumRes.json();
+          setMonthlySummary(Array.isArray(rows) && rows.length > 0 ? rows[0] : null);
+        }
+      } catch {}
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLunch = async (action: 'start' | 'end') => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch('/api/attendance/lunch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ action }),
+      });
+      const out = await res.json();
+      if (!res.ok) {
+        alert(out?.error || 'Failed to update lunch');
+        return;
+      }
+      await fetchData();
+    } catch (_) {
+      alert('Failed to update lunch');
     }
   };
 
@@ -320,6 +363,110 @@ export default function EmployeeDashboardPage() {
             <h1 className="text-2xl font-black gradient-text">Employee Dashboard</h1>
             <p className="text-sm text-slate-600">Welcome back, {profile?.first_name || user?.firstName}!</p>
           </div>
+
+        {/* Reports */}
+        <div className="grid lg:grid-cols-2 gap-6 mt-6">
+          {/* Daily Report */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="premium-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <span>Daily Report (Last 30 days)</span>
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="premium-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Shift</th>
+                    <th>Check In</th>
+                    <th>Lunch (min)</th>
+                    <th>Check Out</th>
+                    <th>Hours</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dailyReport.length === 0 ? (
+                    <tr><td colSpan={7} className="text-center text-sm text-slate-500">No records</td></tr>
+                  ) : (
+                    dailyReport.map((r) => (
+                      <tr key={r.id}>
+                        <td>{new Date(r.date).toLocaleDateString()}</td>
+                        <td>{r.shift_type || 'day'}</td>
+                        <td>{r.check_in || '-'}</td>
+                        <td>{r.lunch_minutes ?? 0}</td>
+                        <td>{r.check_out || '-'}</td>
+                        <td>{r.working_hours ?? 0}</td>
+                        <td>{r.status}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+
+          {/* Monthly Summary */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="premium-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                <Calendar className="h-5 w-5 text-purple-600" />
+                <span>Monthly Report</span>
+              </h3>
+              <input
+                type="month"
+                value={reportMonth}
+                onChange={async (e) => {
+                  const v = e.target.value;
+                  setReportMonth(v);
+                  const token = localStorage.getItem('token');
+                  if (token) {
+                    const sumRes = await fetch(`/api/attendance/summary?month=${v}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    if (sumRes.ok) {
+                      const rows = await sumRes.json();
+                      setMonthlySummary(Array.isArray(rows) && rows.length > 0 ? rows[0] : null);
+                    }
+                  }
+                }}
+                className="glass px-3 py-2 rounded-xl text-sm"
+              />
+            </div>
+            {monthlySummary ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="glass p-3 rounded-xl">
+                    <p className="text-xs text-slate-500">Days Worked</p>
+                    <p className="text-xl font-black text-slate-900">{monthlySummary.days_worked || 0}</p>
+                  </div>
+                  <div className="glass p-3 rounded-xl">
+                    <p className="text-xs text-slate-500">Total Hours</p>
+                    <p className="text-xl font-black text-slate-900">{Number(monthlySummary.total_hours || 0).toFixed(1)}</p>
+                  </div>
+                  <div className="glass p-3 rounded-xl">
+                    <p className="text-xs text-slate-500">Night Days</p>
+                    <p className="text-xl font-black text-slate-900">{monthlySummary.night_days || 0}</p>
+                  </div>
+                </div>
+                {/* Simple bar visualization */}
+                <div>
+                  <p className="text-xs text-slate-600 mb-2">Hours vs Target (8h/day)</p>
+                  <div className="w-full bg-slate-200 rounded-full h-3">
+                    {(() => {
+                      const target = (monthlySummary.days_worked || 0) * 8;
+                      const hours = Number(monthlySummary.total_hours || 0);
+                      const pct = target > 0 ? Math.min(100, Math.round((hours / target) * 100)) : 0;
+                      return <div className="h-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600" style={{ width: `${pct}%` }} />;
+                    })()}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No summary for selected month.</p>
+            )}
+          </motion.div>
+        </div>
           <div className="flex items-center space-x-4">
             <div className="relative">
               <motion.button
@@ -408,6 +555,18 @@ export default function EmployeeDashboardPage() {
                     )}
                   </div>
                 )}
+                {todayAttendance && (
+                  <div className="mt-2 text-xs text-slate-600 flex items-center gap-2">
+                    <span>Lunch: {todayAttendance.lunchMinutes || 0} min</span>
+                    {!todayAttendance.checkedOut && todayAttendance.checkedIn && (
+                      todayAttendance.lunchStart && !todayAttendance.lunchEnd ? (
+                        <button onClick={() => handleLunch('end')} className="px-2 py-1 rounded-md bg-orange-600 text-white text-[11px]">End Lunch</button>
+                      ) : (
+                        <button onClick={() => handleLunch('start')} className="px-2 py-1 rounded-md bg-slate-800 text-white text-[11px]">Start Lunch</button>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -448,9 +607,9 @@ export default function EmployeeDashboardPage() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleCheckIn}
-                  disabled={todayAttendance?.checkedIn || checkingIn}
+                  disabled={todayAttendance?.checkedIn || checkingIn || todayAttendance?.hasPendingNightToday}
                   className={`w-full py-4 rounded-xl font-bold text-white transition-all ${
-                    todayAttendance?.checkedIn
+                    todayAttendance?.checkedIn || todayAttendance?.hasPendingNightToday
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg'
                   }`}
@@ -460,6 +619,8 @@ export default function EmployeeDashboardPage() {
                       <Loader className="h-5 w-5 animate-spin" />
                       <span>Checking In...</span>
                     </span>
+                  ) : todayAttendance?.hasPendingNightToday ? (
+                    'Night Shift Pending Approval'
                   ) : todayAttendance?.checkedIn ? (
                     'Already Checked In'
                   ) : (
@@ -531,6 +692,52 @@ export default function EmployeeDashboardPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Night Shift Request */}
+        <section className="premium-card mb-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900">Night Shift Request</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-white/30 bg-white/80 p-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <label className="text-xs text-slate-600">Start Date</label>
+                  <input type="date" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={newNight.startDate} onChange={(e) => setNewNight((p) => ({ ...p, startDate: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-600">End Date</label>
+                  <input type="date" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={newNight.endDate} onChange={(e) => setNewNight((p) => ({ ...p, endDate: e.target.value }))} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs text-slate-600">Reason (optional)</label>
+                  <input type="text" placeholder="Reason" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" value={newNight.reason} onChange={(e) => setNewNight((p) => ({ ...p, reason: e.target.value }))} />
+                </div>
+              </div>
+              <button onClick={submitNightShiftRequest} disabled={submittingNight} className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+                {submittingNight ? 'Submitting...' : 'Submit Night Shift Request'}
+              </button>
+            </div>
+            <div className="rounded-2xl border border-white/30 bg-white/80 p-4">
+              <p className="mb-3 text-sm font-semibold text-slate-800">Recent Requests</p>
+              <div className="space-y-2">
+                {nightRequests.length === 0 ? (
+                  <p className="text-xs text-slate-500">No requests yet.</p>
+                ) : (
+                  nightRequests.map((r) => (
+                    <div key={r.id} className="rounded-xl bg-white/70 p-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-slate-900">{r.start_date} → {r.end_date}</p>
+                        <span className={`badge ${r.status === 'Approved' ? 'badge-success' : r.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>{r.status}</span>
+                      </div>
+                      {r.reason && <p className="mt-1 text-xs text-slate-500">{r.reason}</p>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Profile Card */}
         <motion.div

@@ -7,7 +7,7 @@ import {
   Shield, Users, Calendar, DollarSign, Settings, Bell, LogOut, TrendingUp,
   CheckCircle, Clock, AlertCircle, Activity, BarChart3, FileText, Database,
   ArrowLeft, Building2, Search, Loader2, ClipboardList, Briefcase, MapPin,
-  Eye, Edit, RefreshCcw
+  Eye, Edit, RefreshCcw, XCircle
 } from 'lucide-react';
 
 type EmployeeRow = {
@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'overview' | 'attendance' | 'leave' | 'payroll' | 'employees' | 'roles'>('overview');
+  const [tab, setTab] = useState<'overview' | 'attendance' | 'leave' | 'payroll' | 'employees' | 'roles' | 'night'>('overview');
   const [stats, setStats] = useState({
     totalEmployees: 0,
     activeEmployees: 0,
@@ -113,6 +113,10 @@ export default function AdminDashboardPage() {
   const [compAllowances, setCompAllowances] = useState<string>('');
   const [compSaving, setCompSaving] = useState<boolean>(false);
   const [nightPendingCount, setNightPendingCount] = useState<number>(0);
+  const [nightRequests, setNightRequests] = useState<any[]>([]);
+  const [nightLoading, setNightLoading] = useState<boolean>(false);
+  const [nightProcessingId, setNightProcessingId] = useState<number | null>(null);
+  const [nightProcessingAction, setNightProcessingAction] = useState<'approve'|'reject'|null>(null);
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementMessage, setAnnouncementMessage] = useState('');
   const [announcementType, setAnnouncementType] = useState<'info'|'warning'|'success'|'error'>('info');
@@ -294,6 +298,58 @@ export default function AdminDashboardPage() {
       console.error('Failed to load admin dashboard data', error);
     }
   }, []);
+
+  const loadNightRequests = useCallback(async () => {
+    try {
+      setNightLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch('/api/night-shift?status=Pending', { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json();
+      const formatted = (Array.isArray(data) ? data : []).map((r: any) => ({
+        id: r.id,
+        employeeName: `${r.first_name ?? ''} ${r.last_name ?? ''}`.trim(),
+        employeeCode: r.employee_code,
+        department: r.department,
+        startDate: r.start_date,
+        endDate: r.end_date,
+        reason: r.reason,
+        status: r.status,
+      }));
+      setNightRequests(formatted);
+    } finally {
+      setNightLoading(false);
+    }
+  }, []);
+
+  const handleNightAction = useCallback(async (id: number, action: 'Approved'|'Rejected') => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    let rejectionReason: string | undefined;
+    if (action === 'Rejected') {
+      const input = window.prompt('Please provide a reason for rejection (optional):');
+      if (input === null) return;
+      rejectionReason = input.trim() || undefined;
+    }
+    try {
+      setNightProcessingId(id);
+      setNightProcessingAction(action === 'Approved' ? 'approve' : 'reject');
+      const res = await fetch('/api/night-shift', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id, status: action, rejectionReason })
+      });
+      const out = await res.json();
+      if (!res.ok) throw new Error(out?.error || 'Failed');
+      await Promise.all([loadNightRequests(), loadNightPendingCount()]);
+    } catch (e: any) {
+      alert(e?.message || 'Failed to update request');
+    } finally {
+      setNightProcessingId(null);
+      setNightProcessingAction(null);
+    }
+  }, [loadNightRequests]);
 
   const loadNightPendingCount = useCallback(async () => {
     try {
@@ -479,6 +535,8 @@ export default function AdminDashboardPage() {
     } else if (tab === 'overview') {
       loadNightPendingCount();
       loadAnnouncements();
+    } else if (tab === 'night') {
+      loadNightRequests();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, attendanceRoleFilter, selectedPayrun, summaryMonth, summaryRole]);
@@ -619,6 +677,45 @@ export default function AdminDashboardPage() {
                 Night requests pending: {nightPendingCount}
               </div>
             )}
+
+        {tab === 'night' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="premium-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                <span>Night Shift Approvals</span>
+              </h3>
+              <button onClick={loadNightRequests} className="rounded-xl bg-slate-900 text-white px-3 py-2 text-sm">Refresh</button>
+            </div>
+            {nightLoading ? (
+              <p className="text-sm text-slate-500">Loading...</p>
+            ) : nightRequests.length === 0 ? (
+              <p className="text-sm text-slate-500">No pending requests.</p>
+            ) : (
+              <div className="space-y-3">
+                {nightRequests.map((req) => (
+                  <div key={req.id} className="p-4 glass rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-slate-900">{req.employeeName} <span className="text-xs text-slate-500">• {req.employeeCode}</span></p>
+                      <p className="text-xs text-slate-500">{req.department || '—'} • {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}</p>
+                      {req.reason && <p className="text-xs text-slate-500 mt-1">{req.reason}</p>}
+                    </div>
+                    <div className="flex gap-2">
+                      <button disabled={nightProcessingId===req.id} onClick={() => handleNightAction(req.id, 'Approved')} className="rounded-xl bg-green-600 text-white px-3 py-1.5 text-xs flex items-center gap-1">
+                        {nightProcessingId===req.id && nightProcessingAction==='approve' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                        Approve
+                      </button>
+                      <button disabled={nightProcessingId===req.id} onClick={() => handleNightAction(req.id, 'Rejected')} className="rounded-xl bg-red-600 text-white px-3 py-1.5 text-xs flex items-center gap-1">
+                        {nightProcessingId===req.id && nightProcessingAction==='reject' ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -651,6 +748,7 @@ export default function AdminDashboardPage() {
             { key: 'payroll', label: 'Payroll' },
             { key: 'employees', label: 'Employees' },
             { key: 'roles', label: 'Roles' },
+            { key: 'night', label: 'Night Shifts' },
           ].map((t: any) => (
             <button
               key={t.key}

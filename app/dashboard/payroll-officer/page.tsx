@@ -93,6 +93,27 @@ export default function PayrollOfficerDashboard() {
   const [newNight, setNewNight] = useState<{ startDate: string; endDate: string; reason: string }>({ startDate: '', endDate: '', reason: '' });
   const [submittingNight, setSubmittingNight] = useState(false);
 
+  const handleLunch = async (action: 'start' | 'end') => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch('/api/attendance/lunch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action }),
+      });
+      const out = await res.json();
+      if (!res.ok) {
+        alert(out?.error || 'Failed to update lunch');
+        return;
+      }
+      const todayRes = await fetch('/api/attendance/today', { headers: { Authorization: `Bearer ${token}` } });
+      if (todayRes.ok) setTodayAttendance(await todayRes.json());
+    } catch (_) {
+      alert('Failed to update lunch');
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       const nextId = await loadPayruns();
@@ -442,6 +463,29 @@ export default function PayrollOfficerDashboard() {
                   <span className="inline-flex items-center gap-2 text-sm"><Clock className="h-4 w-4" /> {currentTime.toLocaleTimeString()}</span>
                   <span className="inline-flex items-center gap-2 text-sm"><Calendar className="h-4 w-4" /> {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
                 </div>
+                {todayAttendance?.shiftType && (
+                  <div className="mt-2 text-xs text-slate-600 flex items-center gap-2">
+                    <span className={`badge ${todayAttendance.shiftType === 'night' ? 'badge-warning' : 'badge-info'}`}>Shift: {todayAttendance.shiftType}</span>
+                    {todayAttendance?.scheduledCheckOut && (
+                      <span>Scheduled out at {new Date(todayAttendance.scheduledCheckOut).toLocaleTimeString()}</span>
+                    )}
+                    {todayAttendance?.autoCheckout && todayAttendance?.autoCheckoutAt && (
+                      <span className="text-red-600">• Auto checked out at {new Date(todayAttendance.autoCheckoutAt).toLocaleTimeString()}</span>
+                    )}
+                  </div>
+                )}
+                {todayAttendance && (
+                  <div className="mt-2 text-xs text-slate-600 flex items-center gap-2">
+                    <span>Lunch: {todayAttendance.lunchMinutes || 0} min</span>
+                    {!todayAttendance.checkedOut && todayAttendance.checkedIn && (
+                      todayAttendance.lunchStart && !todayAttendance.lunchEnd ? (
+                        <button onClick={() => handleLunch('end')} className="px-2 py-1 rounded-md bg-orange-600 text-white text-[11px]">End Lunch</button>
+                      ) : (
+                        <button onClick={() => handleLunch('start')} className="px-2 py-1 rounded-md bg-slate-800 text-white text-[11px]">Start Lunch</button>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -465,10 +509,10 @@ export default function PayrollOfficerDashboard() {
                 )}
                 <button
                   onClick={handleCheckIn}
-                  disabled={todayAttendance?.checkedIn || checkingIn}
-                  className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-white ${todayAttendance?.checkedIn ? 'bg-slate-400' : 'bg-green-600 hover:bg-green-700'}`}
+                  disabled={todayAttendance?.checkedIn || checkingIn || todayAttendance?.hasPendingNightToday}
+                  className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-white ${todayAttendance?.checkedIn || todayAttendance?.hasPendingNightToday ? 'bg-slate-400' : 'bg-green-600 hover:bg-green-700'}`}
                 >
-                  {checkingIn ? 'Checking In...' : todayAttendance?.checkedIn ? 'Already Checked In' : 'Check In Now'}
+                  {checkingIn ? 'Checking In...' : todayAttendance?.hasPendingNightToday ? 'Night Shift Pending Approval' : todayAttendance?.checkedIn ? 'Already Checked In' : 'Check In Now'}
                 </button>
               </div>
 
