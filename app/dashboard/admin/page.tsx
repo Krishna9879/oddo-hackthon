@@ -149,6 +149,25 @@ export default function AdminDashboardPage() {
     password: '',
     role: 'hr',
   });
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    phone: '',
+    dateOfBirth: '',
+    gender: 'Male',
+    address: '',
+    department: '',
+    designation: '',
+    joinDate: '',
+    basicSalary: '',
+    allowances: '',
+    role: 'employee',
+    status: 'active',
+  });
+  const [creatingUser, setCreatingUser] = useState(false);
 
   const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('en-IN') : '—');
   const formatMonthLabel = (month: number, year: number) => `${MONTH_NAMES[(month - 1 + 12) % 12]} ${year}`;
@@ -835,14 +854,14 @@ export default function AdminDashboardPage() {
                 { icon: Calendar, label: 'Attendance', route: '/attendance', color: 'from-green-500 to-green-600' },
                 { icon: FileText, label: 'Leaves', route: '/leave', color: 'from-purple-500 to-purple-600' },
                 { icon: DollarSign, label: 'Payroll', route: '/payroll', color: 'from-orange-500 to-orange-600' },
-                { icon: Database, label: 'Departments', route: '/departments', color: 'from-pink-500 to-pink-600' },
+                { icon: Database, label: 'Departments', route: '#', onClick: () => setShowAddUserModal(true), color: 'from-pink-500 to-pink-600' },
                 { icon: Settings, label: 'Settings', route: '/settings', color: 'from-slate-500 to-slate-600' },
               ].map((action, idx) => (
                 <motion.button
                   key={idx}
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push(action.route)}
+                  onClick={() => action.onClick ? action.onClick() : router.push(action.route)}
                   className="premium-card p-4 hover:shadow-xl transition-all group"
                 >
                   <div className={`bg-gradient-to-br ${action.color} p-3 rounded-xl text-white group-hover:scale-110 transition-transform shadow-lg mx-auto w-fit mb-2`}>
@@ -1792,14 +1811,14 @@ export default function AdminDashboardPage() {
             { icon: Calendar, label: 'Attendance', route: '/attendance', color: 'from-green-500 to-green-600' },
             { icon: FileText, label: 'Leaves', route: '/leave', color: 'from-purple-500 to-purple-600' },
             { icon: DollarSign, label: 'Payroll', route: '/payroll', color: 'from-orange-500 to-orange-600' },
-            { icon: Database, label: 'Departments', route: '/departments', color: 'from-pink-500 to-pink-600' },
+            { icon: Database, label: 'Departments', route: '#', onClick: () => setShowAddUserModal(true), color: 'from-pink-500 to-pink-600' },
             { icon: Settings, label: 'Settings', route: '/settings', color: 'from-slate-500 to-slate-600' },
           ].map((action, idx) => (
             <motion.button
               key={idx}
               whileHover={{ scale: 1.05, y: -5 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => router.push(action.route)}
+              onClick={() => action.onClick ? action.onClick() : router.push(action.route)}
               className="premium-card p-4 hover:shadow-xl transition-all group"
             >
               <div className={`bg-gradient-to-br ${action.color} p-3 rounded-xl text-white group-hover:scale-110 transition-transform shadow-lg mx-auto w-fit mb-2`}>
@@ -1885,6 +1904,277 @@ export default function AdminDashboardPage() {
             </div>
           </motion.div>
         </div>
+
+        {/* Add User Modal */}
+        {showAddUserModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            >
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+                <h2 className="text-2xl font-bold text-slate-900">Add New User</h2>
+                <button
+                  onClick={() => setShowAddUserModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  <XCircle className="h-6 w-6 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Role Selection */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Select Role *</label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  >
+                    <option value="employee">Employee</option>
+                    <option value="hr">HR</option>
+                    <option value="payroll_officer">Payroll Officer</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                {/* Personal Information */}
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">Personal Information</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">First Name *</label>
+                      <input
+                        type="text"
+                        value={newUser.firstName}
+                        onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="John"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name *</label>
+                      <input
+                        type="text"
+                        value={newUser.lastName}
+                        onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="Doe"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Email *</label>
+                      <input
+                        type="email"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="john.doe@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Password *</label>
+                      <input
+                        type="password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="Minimum 6 characters"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Phone</label>
+                      <input
+                        type="tel"
+                        value={newUser.phone}
+                        onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="+91 9876543210"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Date of Birth</label>
+                      <input
+                        type="date"
+                        value={newUser.dateOfBirth}
+                        onChange={(e) => setNewUser({ ...newUser, dateOfBirth: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Gender</label>
+                      <select
+                        value={newUser.gender}
+                        onChange={(e) => setNewUser({ ...newUser, gender: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Address</label>
+                      <input
+                        type="text"
+                        value={newUser.address}
+                        onChange={(e) => setNewUser({ ...newUser, address: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="Full address"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Employment Information */}
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">Employment Information</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Department</label>
+                      <input
+                        type="text"
+                        value={newUser.department}
+                        onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="IT, HR, Finance, etc."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Designation</label>
+                      <input
+                        type="text"
+                        value={newUser.designation}
+                        onChange={(e) => setNewUser({ ...newUser, designation: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="Software Engineer, Manager, etc."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Join Date</label>
+                      <input
+                        type="date"
+                        value={newUser.joinDate}
+                        onChange={(e) => setNewUser({ ...newUser, joinDate: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+                      <select
+                        value={newUser.status}
+                        onChange={(e) => setNewUser({ ...newUser, status: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="terminated">Terminated</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Salary Information */}
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">Salary Information</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Basic Salary (₹)</label>
+                      <input
+                        type="number"
+                        value={newUser.basicSalary}
+                        onChange={(e) => setNewUser({ ...newUser, basicSalary: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="50000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Allowances (₹)</label>
+                      <input
+                        type="number"
+                        value={newUser.allowances}
+                        onChange={(e) => setNewUser({ ...newUser, allowances: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        placeholder="10000"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                  <button
+                    onClick={() => setShowAddUserModal(false)}
+                    className="px-6 py-3 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!newUser.firstName || !newUser.lastName || !newUser.email || !newUser.password) {
+                        alert('Please fill all required fields (First Name, Last Name, Email, Password)');
+                        return;
+                      }
+                      if (newUser.password.length < 6) {
+                        alert('Password must be at least 6 characters long');
+                        return;
+                      }
+                      const token = localStorage.getItem('token');
+                      if (!token) return;
+                      try {
+                        setCreatingUser(true);
+                        const res = await fetch('/api/employees', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify(newUser),
+                        });
+                        const result = await res.json();
+                        if (!res.ok) throw new Error(result?.error || 'Failed to create user');
+                        alert('User created successfully! Credentials sent to email.');
+                        setShowAddUserModal(false);
+                        setNewUser({
+                          firstName: '',
+                          lastName: '',
+                          email: '',
+                          password: '',
+                          phone: '',
+                          dateOfBirth: '',
+                          gender: 'Male',
+                          address: '',
+                          department: '',
+                          designation: '',
+                          joinDate: '',
+                          basicSalary: '',
+                          allowances: '',
+                          role: 'employee',
+                          status: 'active',
+                        });
+                        await loadEmployees();
+                        await loadDashboard();
+                      } catch (e: any) {
+                        alert(e?.message || 'Failed to create user');
+                      } finally {
+                        setCreatingUser(false);
+                      }
+                    }}
+                    disabled={creatingUser}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {creatingUser ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create User'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </div>
   );
